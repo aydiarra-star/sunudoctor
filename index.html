@@ -1,498 +1,457 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SunuDoctor - Le scribe IA pour les médecins de Dakar</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        html { scroll-behavior: smooth; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SunuDoctor — Le scribe IA pour les médecins de Dakar</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          keyframes: {
+            wave: {
+              '0%, 100%': { transform: 'scaleY(0.4)' },
+              '50%': { transform: 'scaleY(1)' },
+            },
+            slideDown: {
+              '0%': { opacity: '0', transform: 'translateY(-8px)' },
+              '100%': { opacity: '1', transform: 'translateY(0)' },
+            },
+          },
+          animation: {
+            wave: 'wave 1s infinite ease-in-out',
+            slideDown: 'slideDown 0.3s ease',
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    html { scroll-behavior: smooth; }
+  </style>
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col justify-between">
+<body class="bg-slate-50 text-slate-900 antialiased">
 
-    <!-- En-tête / Navigation -->
-    <header class="bg-white border-b border-slate-100 py-3.5 px-4 sm:px-8 sticky top-0 z-40 shadow-sm">
-        <div class="max-w-6xl mx-auto flex justify-between items-center">
-            
-            <!-- Logo SunuDoctor -->
-            <a href="#" class="flex items-center gap-2.5">
-                <div class="bg-blue-600 text-white p-2 rounded-xl font-bold flex items-center justify-center">
-                    <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
-                        <path d="M19 3H5c-1.1 0-1.99.9-1.99 2L3 19c0 1.1.89 2 1.99 2H19c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-1 11h-4v4h-4v-4H6v-4h4V6h4v4h4v4z"/>
-                    </svg>
-                </div>
-                <span class="text-xl font-extrabold text-blue-900 tracking-tight">SunuDoctor</span>
-            </a>
+  <!-- NAVIGATION -->
+  <nav class="flex items-center justify-between px-6 py-4 max-w-7xl mx-auto">
+    <div class="flex items-center gap-2">
+      <div class="bg-blue-600 p-2 rounded-lg">
+        <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+      </div>
+      <span class="text-xl font-bold tracking-tight text-blue-900">SunuDoctor</span>
+    </div>
+    <div class="hidden md:flex items-center gap-8 font-medium text-slate-600">
+      <a href="#features" class="hover:text-blue-600 transition-colors">Fonctionnalités</a>
+      <a href="#pricing" class="hover:text-blue-600 transition-colors">Tarifs</a>
+      <a href="#login" class="px-4 py-2 rounded-full border border-blue-600 text-blue-600 hover:bg-blue-50 transition-colors">Connexion</a>
+      <a href="#register" class="px-4 py-2 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-sm">Essai Gratuit</a>
+    </div>
+  </nav>
 
-            <!-- Navigation Links & Auth -->
-            <div class="flex items-center gap-2 sm:gap-3">
-                <button onclick="toggleModal('settings-modal')" class="p-2 text-slate-500 hover:text-blue-600 hover:bg-slate-100 rounded-xl transition" title="Réglages Clé API">
-                    ⚙️
-                </button>
-                <a href="#demo-live" class="hidden sm:inline-block text-sm font-semibold text-slate-600 hover:text-blue-600 px-3 py-2">
-                    Démo
-                </a>
-                <a href="#tarifs" class="hidden sm:inline-block text-sm font-semibold text-slate-600 hover:text-blue-600 px-3 py-2">
-                    Tarifs
-                </a>
-                <button onclick="openAuthModal('login')" class="text-xs sm:text-sm text-blue-600 font-semibold py-2 px-3 sm:px-4 rounded-xl hover:bg-blue-50 transition">
-                    Se connecter
-                </button>
-                <a href="#inscription" class="text-xs sm:text-sm bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-3 sm:px-4 rounded-xl transition shadow-md shadow-blue-500/20">
-                    S'inscrire
-                </a>
-            </div>
+  <!-- HERO -->
+  <header class="px-6 py-16 md:py-24 max-w-7xl mx-auto text-center">
+    <h1 class="text-4xl md:text-6xl font-extrabold text-slate-900 leading-tight mb-6">
+      Le scribe IA pour les <br />
+      <span class="text-blue-600">médecins de Dakar</span>
+    </h1>
+    <p class="text-lg md:text-xl text-slate-600 mb-10 max-w-3xl mx-auto">
+      Automatisez vos notes cliniques, ordonnances et comptes-rendus.
+      Transcription intelligente en <span class="font-semibold">Français et Wolof</span> pour vous redonner du temps avec vos patients.
+    </p>
+    <div class="flex flex-col sm:flex-row justify-center gap-4">
+      <a href="#register" class="px-8 py-4 rounded-full bg-blue-600 text-white text-lg font-semibold hover:bg-blue-700 transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-blue-200">
+        Commencer maintenant
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/></svg>
+      </a>
+      <a href="#demo" class="px-8 py-4 rounded-full bg-white text-slate-700 text-lg font-semibold border border-slate-200 hover:bg-slate-50 transition-all">Voir la démo</a>
+    </div>
+    <div class="mt-16 relative max-w-5xl mx-auto">
+      <div class="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl blur opacity-20"></div>
+      <div class="relative bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden">
+        <img src="https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&q=80&w=2070" alt="Médecin utilisant une tablette" class="w-full h-auto object-cover" />
+      </div>
+    </div>
+  </header>
 
+  <!-- FEATURES + DÉMO -->
+  <section id="features" class="px-6 py-20 bg-white">
+    <div class="max-w-7xl mx-auto">
+      <div class="text-center mb-16">
+        <h2 class="text-3xl md:text-4xl font-bold text-slate-900 mb-4">Conçu pour la réalité sénégalaise</h2>
+        <p class="text-slate-600 max-w-2xl mx-auto">Une solution adaptée aux flux de travail des cliniques dakaroises.</p>
+      </div>
+
+      <!-- DÉMONSTRATION VISUELLE -->
+      <div id="demo" class="mb-24">
+        <div class="text-center mb-12">
+          <h3 class="text-2xl md:text-3xl font-bold text-slate-900 mb-4">Visualisez la puissance de SunuDoctor</h3>
+          <p class="text-slate-600">De la voix au dossier médical en quelques secondes.</p>
         </div>
-    </header>
-
-    <!-- SECTION HERO / LANDING PAGE -->
-    <section class="py-12 sm:py-20 px-4 text-center max-w-4xl mx-auto">
-        <h1 class="text-3xl sm:text-5xl font-black text-slate-900 tracking-tight leading-tight mb-6">
-            Le scribe IA pour les médecins de <span class="text-blue-600">Dakar</span>
-        </h1>
-        <p class="text-base sm:text-lg text-slate-600 max-w-2xl mx-auto mb-8 leading-relaxed">
-            Automatisez vos notes cliniques, ordonnances et comptes-rendus. 
-            Transcription intelligente en <strong>Français et Wolof</strong> pour vous redonner du temps avec vos patients.
-        </p>
-        <div class="flex flex-col sm:flex-row justify-center gap-3 max-w-md mx-auto">
-            <a href="#inscription" class="w-full sm:w-auto py-3.5 px-6 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2">
-                Commencer maintenant ➔
-            </a>
-            <a href="#demo-live" class="w-full sm:w-auto py-3.5 px-6 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold rounded-xl transition shadow-sm flex items-center justify-center">
-                Voir la démo
-            </a>
+        <div class="relative max-w-5xl mx-auto grid md:grid-cols-2 gap-8 items-center p-8 rounded-3xl bg-slate-50 border border-slate-200 shadow-inner">
+          <!-- Interface vocale -->
+          <div class="bg-white p-6 rounded-2xl shadow-xl border border-slate-100 flex flex-col items-center justify-center space-y-6">
+            <div class="w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center shadow-lg animate-pulse">
+              <svg class="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 18.75a6 6 0 0 0 6-6v-1.5m-6 7.5a6 6 0 0 1-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 0 1-3-3V4.5a3 3 0 1 1 6 0v8.25a3 3 0 0 1-3 3Z"/></svg>
+            </div>
+            <div id="wave" class="flex items-end gap-1 h-12"></div>
+            <p class="text-sm font-medium text-slate-500 italic">"Patient se plaint de fièvre..."</p>
+          </div>
+          <!-- Note structurée -->
+          <div class="bg-white p-6 rounded-2xl shadow-xl border border-slate-100 relative overflow-hidden">
+            <div class="absolute top-0 right-0 bg-blue-100 text-blue-600 px-3 py-1 text-[10px] font-bold rounded-bl-lg">TRANSCRIPTION IA</div>
+            <div class="flex items-center gap-2 mb-4">
+              <div class="w-3 h-3 rounded-full bg-red-400"></div>
+              <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
+              <div class="w-3 h-3 rounded-full bg-green-400"></div>
+            </div>
+            <div class="space-y-3">
+              <div class="h-4 bg-slate-100 rounded w-3/4"></div>
+              <div class="h-4 bg-slate-100 rounded w-1/2"></div>
+              <div class="pt-2 space-y-2">
+                <div class="flex gap-2 items-center"><span class="text-[10px] font-bold text-blue-600 w-6">S:</span><div class="h-3 bg-slate-50 rounded w-full"></div></div>
+                <div class="flex gap-2 items-center"><span class="text-[10px] font-bold text-blue-600 w-6">O:</span><div class="h-3 bg-slate-50 rounded w-full"></div></div>
+                <div class="flex gap-2 items-center"><span class="text-[10px] font-bold text-blue-600 w-6">A:</span><div class="h-3 bg-slate-50 rounded w-full"></div></div>
+                <div class="flex gap-2 items-center"><span class="text-[10px] font-bold text-blue-600 w-6">P:</span><div class="h-3 bg-slate-50 rounded w-full"></div></div>
+              </div>
+            </div>
+            <div class="mt-6 pt-4 border-t border-slate-100 text-center">
+              <p class="text-xs font-semibold text-blue-600">Transcription intelligente en Français/Wolof</p>
+            </div>
+          </div>
         </div>
-    </section>
+      </div>
 
-    <!-- MODULE DICTÉE CLINIQUE (SCRIBE VOCAL) -->
-    <section id="demo-live" class="py-12 px-4 max-w-3xl mx-auto w-full">
-        <div class="bg-white rounded-3xl shadow-xl border border-slate-200/80 p-6 sm:p-8">
-            
-            <div class="mb-6">
-                <h2 class="text-2xl font-bold text-slate-900">Scribe vocal</h2>
-                <p class="text-sm text-slate-500 mt-1">
-                    Dictez en français, en wolof ou en mélange. SunuDoctor structure la note, propose l'ordonnance et prépare le certificat. Rien n'est envoyé sans votre validation.
-                </p>
-            </div>
+      <!-- BÉNÉFICES -->
+      <div class="grid md:grid-cols-3 gap-12">
+        <div class="p-8 rounded-2xl bg-slate-50 border border-slate-100 hover:border-blue-200 transition-colors group">
+          <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 0 1 7.843 4.582M12 3a8.997 8.997 0 0 0-7.843 4.582m15.686 0A11.953 11.953 0 0 1 12 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0 1 21 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0 1 12 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 0 1 3 12c0-1.605.42-3.113 1.157-4.418"/></svg>
+          </div>
+          <h3 class="text-xl font-bold mb-3">Français &amp; Wolof</h3>
+          <p class="text-slate-600 leading-relaxed">Capturez les échanges naturels. Notre IA comprend le Wolof et le Français, et structure tout en notes médicales professionnelles.</p>
+        </div>
+        <div class="p-8 rounded-2xl bg-slate-50 border border-slate-100 hover:border-blue-200 transition-colors group">
+          <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
+          </div>
+          <h3 class="text-xl font-bold mb-3">Gain de Temps Massif</h3>
+          <p class="text-slate-600 leading-relaxed">Réduisez votre temps de saisie administrative de 80%. Concentrez-vous sur le diagnostic, l'IA s'occupe de la paperasse.</p>
+        </div>
+        <div class="p-8 rounded-2xl bg-slate-50 border border-slate-100 hover:border-blue-200 transition-colors group">
+          <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.746 3.746 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z"/></svg>
+          </div>
+          <h3 class="text-xl font-bold mb-3">Conformité &amp; Sécurité</h3>
+          <p class="text-slate-600 leading-relaxed">Hébergement sécurisé et conforme aux directives de la CDP Sénégal et de l'Ordre des Médecins. Secret médical garanti.</p>
+        </div>
+      </div>
+    </div>
+  </section>
 
-            <!-- Sélecteurs Clinique / Médecin / Patient -->
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Clinique</label>
-                    <select id="sd-select-clinique" class="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                        <option>Clinique de l'Amitié • Plateau</option>
-                        <option>Cabinet Médical Point E • Point E</option>
-                        <option>Clinique Bellevue Mermoz • Mermoz</option>
-                        <option>Centre iCare Almadies • Almadies</option>
-                        <option>Polyclinique Casahous • Médina</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Médecin</label>
-                    <input type="text" value="Dr Aïssatou Diallo" class="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Patient</label>
-                    <input type="text" placeholder="Nom du patient (ex: Ibrahima S.)" class="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                </div>
-            </div>
-
-            <!-- Contrôles Micro -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-                <button id="sd-btn-record" class="w-full py-3.5 px-4 bg-teal-700 hover:bg-teal-800 active:bg-teal-900 text-white font-semibold rounded-xl transition flex items-center justify-center gap-2 shadow-sm">
-                    <span>🔴</span> Démarrer le micro
-                </button>
-                <button id="sd-btn-stop" class="w-full py-3.5 px-4 bg-slate-600 hover:bg-slate-700 text-white font-semibold rounded-xl transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                    <span>⏹️</span> Arrêter & Whisper
-                </button>
-            </div>
-
-            <!-- Statut -->
-            <div id="sd-status-indicator" class="text-center text-xs font-medium text-slate-500 italic mb-6">
-                Cliquez sur "Démarrer le micro". Wolof : dictez les termes (tangana, sibiru, jaxase...) — le lexique médical adapte le retour.
-            </div>
-
-            <!-- Zone Transcription Brute -->
-            <div class="mb-5">
-                <label for="sd-raw-text" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                    1. Transcription Brute (Français & Wolof) :
-                </label>
-                <textarea id="sd-raw-text" rows="3" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none transition" placeholder="La transcription de la voix s'affichera ici..."></textarea>
-            </div>
-
-            <!-- Bouton Formatage -->
-            <button id="sd-btn-format" class="w-full py-3.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition shadow-md disabled:opacity-50 disabled:cursor-not-allowed mb-6" disabled>
-                ⚡ Convertir & Structurer en Note SOAP
-            </button>
-
-            <!-- Zone Compte-Rendu -->
+  <!-- TÉMOIGNAGES -->
+  <section class="px-6 py-20 bg-white">
+    <div class="max-w-7xl mx-auto">
+      <div class="text-center mb-16">
+        <h2 class="text-3xl md:text-4xl font-bold text-slate-900 mb-4">Approuvé par vos pairs</h2>
+        <p class="text-slate-600">La confiance des médecins sénégalais est notre priorité.</p>
+      </div>
+      <div class="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+        <div class="p-8 rounded-3xl bg-slate-50 border border-slate-100 relative">
+          <svg class="absolute top-6 right-6 w-12 h-12 text-blue-100" fill="currentColor" viewBox="0 0 24 24"><path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z"/></svg>
+          <p class="text-slate-700 text-lg leading-relaxed mb-6 relative z-10">"Grâce à SunuDoctor, je ne passe plus mes soirées à taper des notes. Je me concentre sur mes patients. C'est une révolution pour ma pratique."</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-blue-200 flex items-center justify-center font-bold text-blue-700">AK</div>
             <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                    2. Compte-Rendu Médical Structuré (SOAP) :
-                </label>
-                <div id="sd-soap-output" contenteditable="true" class="w-full p-4 bg-emerald-50/50 border border-emerald-200 rounded-xl text-sm text-slate-800 min-h-[140px] whitespace-pre-wrap focus:outline-none">Le rapport structuré prêt pour le dossier patient apparaîtra ici...</div>
+              <p class="font-bold text-slate-900">Dr. Amadou K.</p>
+              <p class="text-sm text-slate-500">Cardiologue, Dakar</p>
             </div>
-
-            <!-- Action Copier -->
-            <div class="mt-4">
-                <button id="sd-btn-copy" class="w-full py-3 px-4 border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold rounded-xl transition flex items-center justify-center gap-2">
-                    📋 Copier le rapport dans le dossier patient
-                </button>
-            </div>
-
+          </div>
         </div>
-    </section>
-
-    <!-- SECTION TARIFS -->
-    <section id="tarifs" class="py-16 px-4 bg-slate-100/60 border-t border-b border-slate-200/60">
-        <div class="max-w-5xl mx-auto">
-            <div class="text-center mb-12">
-                <h2 class="text-3xl font-extrabold text-slate-900">Tarification adaptative</h2>
-                <p class="text-slate-500 mt-2">Choisissez le forfait adapté à votre activité clinique.</p>
+        <div class="p-8 rounded-3xl bg-slate-50 border border-slate-100 relative">
+          <svg class="absolute top-6 right-6 w-12 h-12 text-blue-100" fill="currentColor" viewBox="0 0 24 24"><path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z"/></svg>
+          <p class="text-slate-700 text-lg leading-relaxed mb-6 relative z-10">"Pouvoir parler wolof naturellement et voir le compte-rendu médical se générer parfaitement en français est bluffant. Un gain de temps précieux."</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-blue-200 flex items-center justify-center font-bold text-blue-700">FN</div>
+            <div>
+              <p class="font-bold text-slate-900">Dr. Fatou N.</p>
+              <p class="text-sm text-slate-500">Médecin Généraliste, Thiès</p>
             </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                
-                <!-- Plan Solo -->
-                <div class="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm flex flex-col justify-between">
-                    <div>
-                        <h3 class="text-xl font-bold text-slate-900 mb-2">Plan Solo</h3>
-                        <div class="flex items-baseline gap-1 mb-6">
-                            <span class="text-4xl font-black text-slate-900">50 000</span>
-                            <span class="text-slate-500 font-medium text-sm">FCFA / mois</span>
-                        </div>
-                        <ul class="space-y-3.5 text-sm text-slate-600 mb-8">
-                            <li class="flex items-center gap-2.5">
-                                <span class="text-emerald-500 font-bold">✓</span> Jusqu'à 100 consultations/mois
-                            </li>
-                            <li class="flex items-center gap-2.5">
-                                <span class="text-emerald-500 font-bold">✓</span> Transcription FR/Wolof
-                            </li>
-                            <li class="flex items-center gap-2.5">
-                                <span class="text-emerald-500 font-bold">✓</span> Génération d'ordonnances
-                            </li>
-                        </ul>
-                    </div>
-                    <a href="#inscription" class="w-full py-3.5 text-center border-2 border-blue-600 text-blue-600 hover:bg-blue-50 font-bold rounded-xl transition">
-                        Choisir Solo
-                    </a>
-                </div>
-
-                <!-- Plan Clinique (Populaire) -->
-                <div class="bg-white rounded-3xl p-8 border-2 border-blue-600 shadow-xl relative flex flex-col justify-between">
-                    <span class="absolute -top-3.5 right-6 bg-blue-600 text-white text-[10px] font-black uppercase px-3 py-1 rounded-full tracking-wider">
-                        POPULAIRE
-                    </span>
-                    <div>
-                        <h3 class="text-xl font-bold text-slate-900 mb-2">Plan Clinique</h3>
-                        <div class="flex items-baseline gap-1 mb-6">
-                            <span class="text-4xl font-black text-slate-900">250 000</span>
-                            <span class="text-slate-500 font-medium text-sm">FCFA / mois</span>
-                        </div>
-                        <ul class="space-y-3.5 text-sm text-slate-600 mb-8">
-                            <li class="flex items-center gap-2.5">
-                                <span class="text-emerald-500 font-bold">✓</span> Jusqu'à 5 médecins
-                            </li>
-                            <li class="flex items-center gap-2.5">
-                                <span class="text-emerald-500 font-bold">✓</span> Base de patients partagée
-                            </li>
-                            <li class="flex items-center gap-2.5">
-                                <span class="text-emerald-500 font-bold">✓</span> Support prioritaire 24/7
-                            </li>
-                        </ul>
-                    </div>
-                    <a href="#inscription" class="w-full py-3.5 text-center bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition shadow-lg shadow-blue-600/30">
-                        Choisir Clinique
-                    </a>
-                </div>
-
-            </div>
+          </div>
         </div>
-    </section>
-
-    <!-- SECTION FORMULAIRE D'INSCRIPTION -->
-    <section id="inscription" class="py-16 px-4 max-w-md mx-auto w-full">
-        <div class="bg-white rounded-3xl shadow-xl border border-slate-200 p-6 sm:p-8">
-            <h3 class="text-2xl font-bold text-slate-900 text-center mb-6">Créer un compte</h3>
-            
-            <form onsubmit="handleRegister(event)" class="space-y-4">
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1">Spécialité</label>
-                    <input type="text" required placeholder="Cardiologie, Médecine Générale..." class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1">Clinique / Établissement</label>
-                    <select required class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white">
-                        <option value="">Sélectionnez votre établissement</option>
-                        <option>Clinique de l'Amitié</option>
-                        <option>Cabinet Médical Point E</option>
-                        <option>Clinique Bellevue Mermoz</option>
-                        <option>Centre iCare Almadies</option>
-                        <option>Polyclinique Casahous</option>
-                        <option>Autre / Indépendant</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1">Email Professionnel</label>
-                    <input type="email" required placeholder="dr.diallo@email.sn" class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1">Mot de passe</label>
-                    <input type="password" required placeholder="••••••••" class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                </div>
-                <button type="submit" class="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition shadow-lg shadow-blue-600/30">
-                    S'inscrire gratuitement
-                </button>
-            </form>
-
-            <div class="mt-4 text-center">
-                <button onclick="openAuthModal('login')" class="text-xs text-blue-600 font-semibold hover:underline">
-                    Déjà inscrit ? Se connecter
-                </button>
-            </div>
-        </div>
-    </section>
-
-    <!-- FOOTER -->
-    <footer class="bg-slate-900 text-white py-10 px-4">
-        <div class="max-w-5xl mx-auto text-center space-y-4">
-            <div class="flex justify-center items-center gap-2">
-                <div class="bg-blue-600 text-white p-1.5 rounded-lg font-bold text-xs">🩺</div>
-                <span class="text-lg font-bold tracking-tight">SunuDoctor</span>
-            </div>
-            <div class="flex justify-center gap-6 text-xs text-slate-400">
-                <a href="#" class="hover:text-white">Mentions Légales</a>
-                <a href="#" class="hover:text-white">Confidentialité</a>
-                <a href="#" class="hover:text-white">Contact</a>
-            </div>
-            <p class="text-[11px] text-slate-500 flex items-center justify-center gap-2">
-                🛡️ Conformité CDP Sénégal • Secret Médical Garanti
-            </p>
-            <p class="text-xs text-slate-600 pt-4">
-                © 2026 SunuDoctor Dakar. Tous droits réservés.
-            </p>
-        </div>
-    </footer>
-
-    <!-- MODAL AUTHENTIFICATION -->
-    <div id="auth-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl p-6 border border-slate-100">
-            <div class="flex justify-between items-center mb-4">
-                <h3 id="auth-title" class="text-xl font-bold text-slate-900">Connexion</h3>
-                <button onclick="toggleModal('auth-modal')" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
-            </div>
-            <form onsubmit="handleAuthSubmit(event)" class="space-y-4">
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1">Email Professionnel</label>
-                    <input type="email" required placeholder="dr.diallo@email.sn" class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1">Mot de passe</label>
-                    <input type="password" required placeholder="••••••••" class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                </div>
-                <button type="submit" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition shadow-md">
-                    Se connecter
-                </button>
-            </form>
-        </div>
+      </div>
     </div>
+  </section>
 
-    <!-- MODAL REGLAGES API KEY -->
-    <div id="settings-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl p-6 border border-slate-100">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-xl font-bold text-slate-900">Configuration API</h3>
-                <button onclick="toggleModal('settings-modal')" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
-            </div>
-            <div class="space-y-4">
-                <p class="text-xs text-slate-500">
-                    Saisissez votre clé OpenAI pour activer la transcription et l'analyse bilingue.
-                </p>
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1">Clé API OpenAI (sk-...)</label>
-                    <input type="password" id="api-key-input" placeholder="sk-..." class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                </div>
-                <button onclick="saveApiKey()" class="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl transition">
-                    Enregistrer la Clé
-                </button>
-            </div>
+  <!-- TARIFS -->
+  <section id="pricing" class="px-6 py-20 bg-slate-50">
+    <div class="max-w-7xl mx-auto">
+      <div class="text-center mb-16">
+        <h2 class="text-3xl md:text-4xl font-bold text-slate-900 mb-4">Des tarifs transparents</h2>
+        <p class="text-slate-600">Choisissez le plan adapté à votre pratique.</p>
+      </div>
+      <div class="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+        <div class="p-8 rounded-3xl bg-white border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+          <h3 class="text-xl font-bold mb-2">Plan Solo</h3>
+          <div class="flex items-baseline gap-1 mb-6">
+            <span class="text-4xl font-extrabold">50 000</span>
+            <span class="text-slate-500">FCFA / mois</span>
+          </div>
+          <ul class="space-y-4 mb-8 text-slate-600">
+            <li class="flex items-center gap-3"><span class="w-5 h-5 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-xs">✓</span> Jusqu'à 100 consultations/mois</li>
+            <li class="flex items-center gap-3"><span class="w-5 h-5 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-xs">✓</span> Transcription FR/Wolof</li>
+            <li class="flex items-center gap-3"><span class="w-5 h-5 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-xs">✓</span> Génération d'ordonnances</li>
+          </ul>
+          <a href="#register" class="block w-full py-3 rounded-xl border border-blue-600 text-blue-600 font-semibold text-center hover:bg-blue-50 transition-colors">Choisir Solo</a>
         </div>
+        <div class="p-8 rounded-3xl bg-white border-2 border-blue-600 shadow-xl relative overflow-hidden">
+          <div class="absolute top-0 right-0 bg-blue-600 text-white px-4 py-1 text-sm font-bold rounded-bl-xl">POPULAIRE</div>
+          <h3 class="text-xl font-bold mb-2">Plan Clinique</h3>
+          <div class="flex items-baseline gap-1 mb-6">
+            <span class="text-4xl font-extrabold">250 000</span>
+            <span class="text-slate-500">FCFA / mois</span>
+          </div>
+          <ul class="space-y-4 mb-8 text-slate-600">
+            <li class="flex items-center gap-3"><span class="w-5 h-5 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-xs">✓</span> Jusqu'à 5 médecins</li>
+            <li class="flex items-center gap-3"><span class="w-5 h-5 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-xs">✓</span> Base de patients partagée</li>
+            <li class="flex items-center gap-3"><span class="w-5 h-5 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-xs">✓</span> Support prioritaire 24/7</li>
+          </ul>
+          <a href="#register" class="block w-full py-3 rounded-xl bg-blue-600 text-white font-semibold text-center hover:bg-blue-700 transition-colors shadow-lg">Choisir Clinique</a>
+        </div>
+      </div>
     </div>
+  </section>
 
-    <!-- JAVASCRIPT APPLICATION -->
-    <script>
-    const LEXIQUE_MEDICAL_WOLOF = `
-    - 'tàngaay' / 'tangana' -> Hyperthermie / Fièvre
-    - 'metti bopp' -> Céphalées / Maux de tête
-    - 'biir buy daw' / 'jaxase' -> Diarrhée / Selles liquides
-    - 'biir buy metti' -> Douleurs abdominales / Coliques
-    - 'soxli' -> Toux
-    - 'nokkis' -> Dyspnée / Difficulté respiratoire
-    - 'lokki' -> Vomissements
-    - 'xel buy waaxu' -> Nausées
-    - 'yaram buy metti' -> Myalgies / Courbatures
-    - 'tayel' -> Asthénie / Fatigue intense
-    - 'siti' -> Hémorroïdes
-    - 'sibbiru' / 'sibiru' -> Paludisme / Accès palustre
-    `;
+  <!-- INSCRIPTION AVEC CHAMP CLINIQUE -->
+  <section id="register" class="px-6 py-20 bg-slate-50">
+    <div class="max-w-md w-full mx-auto bg-white rounded-3xl shadow-xl border border-slate-200 p-8">
+      <div class="text-center mb-8">
+        <div class="bg-blue-600 w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4">
+          <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0ZM4 19.235v-.11a6.375 6.375 0 0 1 12.75 0v.109A12.318 12.318 0 0 1 10.374 21c-2.331 0-4.512-.645-6.374-1.766Z"/></svg>
+        </div>
+        <h2 class="text-2xl font-bold text-slate-900">Créer un compte</h2>
+        <p class="text-slate-500">Rejoignez la révolution de la e-santé à Dakar</p>
+      </div>
 
-    const SYSTEM_PROMPT = `Tu es le scribe médical virtuel officiel de SunuDoctor au Sénégal.
-Ta mission est de recevoir une dictée médicale brute (Français/Wolof) et d'éditer une fiche médicale SOAP professionnelle et parfaitement corrigée.
-Règles :
-1. Traduis le wolof en vocabulaire médical exact (ex: tàngaay = Fièvre/Hyperthermie).
-2. N'ajoute AUCUNE information ou symptôme non explicitement énoncé.
-3. Formate le retour au format : [S] Subjectif, [O] Objectif, [A] Analyse, [P] Plan/Traitement.`;
+      <form id="registerForm" class="space-y-4">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Prénom</label>
+            <input type="text" required class="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Amadou" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Nom</label>
+            <input type="text" required class="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Diallo" />
+          </div>
+        </div>
 
-    let mediaRecorder;
-    let audioChunks = [];
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Spécialité</label>
+          <input type="text" required class="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Cardiologie" />
+        </div>
 
-    const btnRecord = document.getElementById('sd-btn-record');
-    const btnStop = document.getElementById('sd-btn-stop');
-    const btnFormat = document.getElementById('sd-btn-format');
-    const btnCopy = document.getElementById('sd-btn-copy');
-    const statusText = document.getElementById('sd-status-indicator');
-    const rawText = document.getElementById('sd-raw-text');
-    const soapOutput = document.getElementById('sd-soap-output');
+        <!-- CHAMP CLINIQUE -->
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Clinique / Établissement</label>
+          <div class="relative">
+            <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21"/></svg>
+            <select id="clinicSelect" required class="w-full pl-10 pr-10 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none">
+              <option value="" disabled selected>Sélectionnez votre établissement</option>
+              <!-- Options injectées par JavaScript -->
+            </select>
+            <svg class="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg>
+          </div>
+        </div>
 
-    function toggleModal(id) {
-        const modal = document.getElementById(id);
-        modal.classList.toggle('hidden');
-        if (id === 'settings-modal' && !modal.classList.contains('hidden')) {
-            document.getElementById('api-key-input').value = localStorage.getItem('SUNUDOCTOR_OPENAI_KEY') || '';
-        }
-    }
+        <!-- SAISIE LIBRE -->
+        <div id="customClinicWrap" class="hidden animate-slideDown">
+          <label class="text-sm font-medium text-slate-700 mb-1 flex items-center gap-1">
+            <svg class="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
+            Nom de votre établissement
+          </label>
+          <input type="text" id="customClinicInput" class="w-full px-4 py-2 rounded-xl border border-blue-200 bg-blue-50/40 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Ex : Cabinet Médical Sacré-Cœur · Dakar" />
+        </div>
 
-    function openAuthModal() {
-        document.getElementById('auth-modal').classList.remove('hidden');
-    }
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Email Professionnel</label>
+          <input type="email" required class="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="dr.diallo@email.sn" />
+        </div>
 
-    function handleAuthSubmit(e) {
-        e.preventDefault();
-        alert('Connexion réussie !');
-        toggleModal('auth-modal');
-    }
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Mot de passe</label>
+          <input type="password" required class="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="••••••••" />
+        </div>
 
-    function handleRegister(e) {
-        e.preventDefault();
-        alert('Inscription enregistrée avec succès !');
-    }
+        <button type="submit" class="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg">S'inscrire gratuitement</button>
+      </form>
 
-    function saveApiKey() {
-        const key = document.getElementById('api-key-input').value.trim();
-        if (key) {
-            localStorage.setItem('SUNUDOCTOR_OPENAI_KEY', key);
-            alert('Clé API enregistrée !');
-            toggleModal('settings-modal');
-        }
-    }
+      <div class="mt-6 text-center">
+        <p class="text-sm text-slate-500">Déjà inscrit ? <a href="#login" class="text-blue-600 font-semibold hover:underline">Se connecter</a></p>
+      </div>
+    </div>
+  </section>
 
-    function getApiKey() {
-        let apiKey = localStorage.getItem('SUNUDOCTOR_OPENAI_KEY');
-        if (!apiKey) {
-            toggleModal('settings-modal');
-            return null;
-        }
-        return apiKey;
-    }
+  <!-- FOOTER -->
+  <footer class="px-6 py-12 bg-slate-900 text-slate-400">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+      <div class="flex items-center gap-2 text-white">
+        <div class="bg-blue-600 p-1 rounded">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        </div>
+        <span class="text-lg font-bold">SunuDoctor</span>
+      </div>
+      <div class="flex gap-8 text-sm">
+        <a href="#" class="hover:text-white transition-colors">Mentions Légales</a>
+        <a href="#" class="hover:text-white transition-colors">Confidentialité</a>
+        <a href="#" class="hover:text-white transition-colors">Contact</a>
+      </div>
+      <div class="flex items-center gap-2 text-xs text-slate-500">
+        <svg class="w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z"/></svg>
+        <span>Conformité CDP Sénégal • Secret Médical Garanti</span>
+      </div>
+      <p class="text-sm">© 2026 SunuDoctor Dakar. Tous droits réservés.</p>
+    </div>
+  </footer>
 
-    btnRecord.addEventListener('click', async () => {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder = new MediaRecorder(stream);
-            audioChunks = [];
+  <script>
+    /* =========================================================
+       LISTE COMPLÈTE DES ÉTABLISSEMENTS DE SANTÉ DU SÉNÉGAL
+       Regroupés par régions/zones (optgroup).
+       ========================================================= */
+    const CLINIC_GROUPS = [
+      {
+        region: "Dakar — Centre & Corniche",
+        clinics: [
+          { name: "Hôpital Principal de Dakar", location: "Plateau" },
+          { name: "Hôpital Aristide Le Dantec", location: "Plateau" },
+          { name: "Clinique de l'Amitié", location: "Plateau" },
+          { name: "Clinique Madeleine", location: "Plateau" },
+          { name: "Polyclinique Casahous", location: "Médina" },
+          { name: "Hôpital Abass Ndao", location: "Fann" },
+          { name: "Centre Hospitalier Universitaire de Fann", location: "Fann" },
+          { name: "Cabinet Médical Point E", location: "Point E" },
+          { name: "Clinique Bellevue Mermoz", location: "Mermoz" },
+          { name: "Clinique Pasteur", location: "Mermoz" },
+          { name: "Clinique du Cap", location: "Fann Residence" },
+          { name: "Centre iCare Almadies", location: "Almadies" },
+          { name: "Clinique des Almadies", location: "Almadies" }
+        ]
+      },
+      {
+        region: "Dakar — Grand Dakar & Banlieue",
+        clinics: [
+          { name: "Hôpital Général Idrissa Pouye (Grand Yoff)", location: "Grand Yoff" },
+          { name: "Hôpital Roi Baudouin", location: "Guédiawaye" },
+          { name: "Hôpital Dalal Jamm", location: "Guédiawaye" },
+          { name: "Hôpital de Pikine", location: "Camp Thiaroye" },
+          { name: "Centre de Santé Gaspard Kamara", location: "Allées Seydou Nourou Tall" },
+          { name: "Centre de Santé Nabil Choucair", location: "Sicap Liberté" },
+          { name: "Centre de Santé de Rufisque", location: "Rufisque" }
+        ]
+      },
+      {
+        region: "Thiès",
+        clinics: [
+          { name: "Hôpital Régional de Thiès", location: "Thiès" },
+          { name: "Hôpital Saint-Jean de Dieu", location: "Thiès" },
+          { name: "Centre de Santé de Mbour", location: "Mbour" },
+          { name: "Hôpital de Tivaouane", location: "Tivaouane" }
+        ]
+      },
+      {
+        region: "Saint-Louis",
+        clinics: [
+          { name: "Hôpital Régional de Saint-Louis", location: "Saint-Louis" },
+          { name: "Centre de Santé de Richard-Toll", location: "Richard-Toll" }
+        ]
+      },
+      {
+        region: "Kaolack",
+        clinics: [
+          { name: "Centre Hospitalier Régional El Hadji Ibrahima Niass", location: "Kaolack" },
+          { name: "Centre de Santé de Kaffrine", location: "Kaffrine" }
+        ]
+      },
+      {
+        region: "Ziguinchor (Casamance)",
+        clinics: [
+          { name: "Hôpital de la Paix", location: "Ziguinchor" },
+          { name: "Hôpital Régional de Kolda", location: "Kolda" }
+        ]
+      },
+      {
+        region: "Touba & Diourbel",
+        clinics: [
+          { name: "Hôpital Régional de Touba", location: "Touba" },
+          { name: "Hôpital Matlaboul Fawzeyni", location: "Touba" },
+          { name: "Hôpital Régional de Diourbel", location: "Diourbel" }
+        ]
+      },
+      {
+        region: "Autres Régions",
+        clinics: [
+          { name: "Hôpital Régional de Tambacounda", location: "Tambacounda" },
+          { name: "Hôpital Amath Dansokho", location: "Kédougou" },
+          { name: "Hôpital Régional de Fatick", location: "Fatick" },
+          { name: "Hôpital Régional de Louga", location: "Louga" },
+          { name: "Hôpital Régional de Matam", location: "Matam" },
+          { name: "Hôpital Régional de Sédhiou", location: "Sédhiou" }
+        ]
+      }
+    ];
 
-            mediaRecorder.ondataavailable = event => audioChunks.push(event.data);
-            mediaRecorder.onstop = handleAudioTranscription;
+    const OTHER_CLINIC_VALUE = "__other__";
 
-            mediaRecorder.start();
-            btnRecord.disabled = true;
-            btnStop.disabled = false;
-            statusText.innerText = "🎙️ Enregistrement vocal en cours... Parlez à voix haute.";
-        } catch (err) {
-            alert("Erreur d'accès au microphone : " + err.message);
-        }
+    /* ---- Remplissage du menu déroulant ---- */
+    const select = document.getElementById("clinicSelect");
+    CLINIC_GROUPS.forEach(function (group) {
+      const optgroup = document.createElement("optgroup");
+      optgroup.label = group.region;
+      group.clinics.forEach(function (c) {
+        const opt = document.createElement("option");
+        const value = c.name + " · " + c.location;
+        opt.value = value;
+        opt.textContent = value;
+        optgroup.appendChild(opt);
+      });
+      select.appendChild(optgroup);
+    });
+    const otherOpt = document.createElement("option");
+    otherOpt.value = OTHER_CLINIC_VALUE;
+    otherOpt.textContent = "+ Autre établissement (Saisie libre)";
+    select.appendChild(otherOpt);
+
+    /* ---- Affichage dynamique du champ de saisie libre ---- */
+    const customWrap = document.getElementById("customClinicWrap");
+    const customInput = document.getElementById("customClinicInput");
+    select.addEventListener("change", function () {
+      if (select.value === OTHER_CLINIC_VALUE) {
+        customWrap.classList.remove("hidden");
+        customInput.setAttribute("required", "required");
+      } else {
+        customWrap.classList.add("hidden");
+        customInput.removeAttribute("required");
+      }
     });
 
-    btnStop.addEventListener('click', () => {
-        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-            mediaRecorder.stop();
-        }
-        btnRecord.disabled = false;
-        btnStop.disabled = true;
-        statusText.innerText = "⌛ Traitement de la voix en cours...";
+    /* ---- Soumission du formulaire ---- */
+    document.getElementById("registerForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+      const selectedClinic = select.value === OTHER_CLINIC_VALUE ? customInput.value.trim() : select.value;
+      alert("Inscription réussie !\nÉtablissement : " + selectedClinic);
     });
 
-    async function handleAudioTranscription() {
-        const apiKey = getApiKey();
-        if (!apiKey) {
-            statusText.innerText = "❌ Clé API manquante. Cliquez sur ⚙️ pour la configurer.";
-            return;
-        }
-
-        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-        const formData = new FormData();
-        formData.append('file', audioBlob, 'dictation.webm');
-        formData.append('model', 'whisper-1');
-        formData.append('prompt', 'Dictée médicale SunuDoctor en français et wolof: tangana, metti bopp, sibiru, jaxase.');
-
-        try {
-            const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${apiKey}` },
-                body: formData
-            });
-
-            const data = await response.json();
-            if (data.error) throw new Error(data.error.message);
-
-            rawText.value = data.text;
-            btnFormat.disabled = false;
-            statusText.innerText = "✅ Transcription terminée. Cliquez sur le bouton bleu pour structurer.";
-        } catch (err) {
-            statusText.innerText = "❌ Erreur : " + err.message;
-        }
-    }
-
-    btnFormat.addEventListener('click', async () => {
-        const apiKey = getApiKey();
-        if (!apiKey) return;
-
-        statusText.innerText = "🧠 Analyse médicale et traduction en cours...";
-
-        try {
-            const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${apiKey}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    model: "gpt-4o",
-                    temperature: 0.1,
-                    messages: [
-                        { role: "system", content: SYSTEM_PROMPT + "\nLexique:\n" + LEXIQUE_MEDICAL_WOLOF },
-                        { role: "user", content: rawText.value }
-                    ]
-                })
-            });
-
-            const data = await response.json();
-            if (data.error) throw new Error(data.error.message);
-
-            soapOutput.innerText = data.choices[0].message.content;
-            statusText.innerText = "✅ Compte-rendu médical généré avec succès !";
-        } catch (err) {
-            statusText.innerText = "❌ Erreur d'analyse : " + err.message;
-        }
+    /* ---- Animation de l'onde sonore ---- */
+    const wave = document.getElementById("wave");
+    const heights = [16, 32, 48, 24, 40, 56, 28, 44, 20, 36, 52, 32];
+    heights.forEach(function (h, i) {
+      const bar = document.createElement("div");
+      bar.className = "w-1.5 bg-blue-400 rounded-full animate-wave";
+      bar.style.height = h + "px";
+      bar.style.animationDelay = (i * 0.1) + "s";
+      wave.appendChild(bar);
     });
+  </script>
 
-    btnCopy.addEventListener('click', () => {
-        navigator.clipboard.writeText(soapOutput.innerText);
-        alert("Compte-rendu copié dans le presse-papier !");
-    });
-    </script>
 </body>
 </html>
