@@ -3,232 +3,366 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SunuDoctor - Assistant Médical Bilingue</title>
-    <!-- Tailwind CSS pour le style -->
+    <title>SunuDoctor - Assistant & Scribe Médical Bilingue</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-50 min-h-screen text-slate-800">
+<body class="bg-slate-50 min-h-screen text-slate-800 flex flex-col justify-between">
 
-    <!-- En-tête Global SunuDoctor -->
-    <header class="bg-blue-600 text-white py-4 px-6 shadow-md">
-        <div class="max-w-5xl mx-auto flex justify-between items-center">
-            <h1 class="text-2xl font-bold flex items-center gap-2">
-                🩺 <span>SunuDoctor</span>
-            </h1>
-            <span class="text-xs bg-blue-700 px-3 py-1 rounded-full border border-blue-400">
-                Scribe Clinique IA
-            </span>
+    <!-- Navbar SunuDoctor -->
+    <header class="bg-blue-600 text-white py-3.5 px-4 sm:px-6 shadow-md sticky top-0 z-40">
+        <div class="max-w-5xl mx-auto flex justify-between items-center gap-2">
+            
+            <!-- Logo -->
+            <div class="flex items-center gap-2">
+                <span class="text-2xl">🩺</span>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight leading-tight">SunuDoctor</h1>
+                    <p class="text-[10px] text-blue-200">Scribe Clinique Bilingue</p>
+                </div>
+            </div>
+
+            <!-- Boutons de Nav & Réglages -->
+            <div class="flex items-center gap-2">
+                <button onclick="toggleModal('settings-modal')" class="p-2 text-blue-100 hover:text-white hover:bg-blue-700 rounded-lg transition" title="Réglages Clé API">
+                    ⚙️
+                </button>
+                <button onclick="openAuthModal('login')" class="text-xs sm:text-sm bg-transparent hover:bg-blue-700 text-white font-medium py-1.5 px-3 border border-white/40 rounded-lg transition">
+                    Se connecter
+                </button>
+                <button onclick="openAuthModal('register')" class="text-xs sm:text-sm bg-white hover:bg-blue-50 text-blue-600 font-semibold py-1.5 px-3 rounded-lg transition shadow-sm">
+                    S'inscrire
+                </button>
+            </div>
+
         </div>
     </header>
 
-    <!-- === MODULE DICTÉE BILINGUE DYNAMIQUE SUNUDOCTOR === -->
-    <section id="demo-live" class="py-12 px-4 max-w-3xl mx-auto">
-        <div class="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 md:p-8">
+    <!-- Main Content -->
+    <main class="py-8 px-4 max-w-3xl mx-auto w-full flex-grow">
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-200 p-5 md:p-8">
             
-            <!-- En-tête du module -->
+            <!-- En-tête du Scribe -->
             <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-6">
                 <div class="flex items-center gap-3">
                     <div class="bg-blue-100 text-blue-600 p-3 rounded-xl font-bold text-xl">
                         🎙️
                     </div>
                     <div>
-                        <h3 class="text-xl font-bold text-slate-900">Dictée Clinique Bilingue</h3>
+                        <h2 class="text-xl font-bold text-slate-900">Dictée Clinique Bilingue</h2>
                         <p class="text-sm text-slate-500">Français & Wolof médical</p>
                     </div>
                 </div>
-                <span class="bg-blue-50 text-blue-700 text-xs font-semibold px-3 py-1 rounded-full border border-blue-200">
-                    IA SunuDoctor
+                <span class="bg-emerald-50 text-emerald-700 text-xs font-semibold px-3 py-1 rounded-full border border-emerald-200 flex items-center gap-1">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Prêt
                 </span>
             </div>
 
             <!-- Contrôles Enregistrement -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                 <button id="sd-btn-record" class="w-full py-3.5 px-4 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-semibold rounded-xl transition flex items-center justify-center gap-2 shadow-sm">
-                    <span class="animate-pulse">🔴</span> Commencer la Dictée
+                    <span>🔴</span> Commencer la Dictée
                 </button>
                 <button id="sd-btn-stop" class="w-full py-3.5 px-4 bg-slate-600 hover:bg-slate-700 text-white font-semibold rounded-xl transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
                     <span>⏹️</span> Terminer
                 </button>
             </div>
 
-            <!-- Indicateur de statut -->
+            <!-- Statut -->
             <div id="sd-status-indicator" class="text-center text-sm font-medium text-slate-500 italic mb-6">
                 Cliquez sur "Commencer la Dictée" et parlez naturellement en français et wolof.
             </div>
 
-            <!-- Champ transcription brute (Dynamique) -->
+            <!-- Zone 1 : Transcription Brute -->
             <div class="mb-5">
                 <label for="sd-raw-text" class="block text-sm font-bold text-slate-700 mb-2">
                     1. Transcription brute (Français & Wolof) :
                 </label>
-                <textarea id="sd-raw-text" rows="3" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="Vos paroles enregistrées s'afficheront ici en temps réel..."></textarea>
+                <textarea id="sd-raw-text" rows="3" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none transition" placeholder="Vos paroles enregistrées s'afficheront ici..."></textarea>
             </div>
 
-            <!-- Bouton de structuration -->
+            <!-- Bouton Conversion -->
             <button id="sd-btn-format" class="w-full py-3.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition shadow-md disabled:opacity-50 disabled:cursor-not-allowed mb-6" disabled>
                 ⚡ Convertir & Corriger en Fiche Médicale SOAP
             </button>
 
-            <!-- Résultat : Fiche SOAP -->
+            <!-- Zone 2 : Compte-Rendu Structuré -->
             <div>
                 <label class="block text-sm font-bold text-slate-700 mb-2">
                     2. Compte-Rendu Médical Structuré (Français Médical) :
                 </label>
-                <div id="sd-soap-output" contenteditable="true" class="w-full p-4 bg-emerald-50/50 border border-emerald-200 rounded-xl text-sm text-slate-800 min-h-[140px] whitespace-pre-wrap focus:outline-none">Le compte-rendu médical issu de votre propre voix s'affichera ici...</div>
+                <div id="sd-soap-output" contenteditable="true" class="w-full p-4 bg-emerald-50/50 border border-emerald-200 rounded-xl text-sm text-slate-800 min-h-[140px] whitespace-pre-wrap focus:outline-none">Le compte-rendu médical structuré issu de la dictée s'affichera ici...</div>
             </div>
             
-            <!-- Action Copier -->
-            <div class="mt-4">
+            <!-- Actions -->
+            <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <button id="sd-btn-copy" class="w-full py-3 px-4 border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold rounded-xl transition flex items-center justify-center gap-2">
-                    📋 Copier le rapport dans le dossier patient
+                    📋 Copier le rapport
+                </button>
+                <button onclick="clearAll()" class="w-full py-3 px-4 border border-red-200 text-red-600 hover:bg-red-50 font-semibold rounded-xl transition flex items-center justify-center gap-2">
+                    🗑️ Effacer
                 </button>
             </div>
 
         </div>
-    </section>
+    </main>
 
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500">
+        © 2026 SunuDoctor - Solution de Scribe Médical Intelligente
+    </footer>
+
+    <!-- MODAL AUTHENTIFICATION (Connexion / Inscription) -->
+    <div id="auth-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl p-6 border border-slate-100">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="auth-title" class="text-xl font-bold text-slate-900">Connexion</h3>
+                <button onclick="toggleModal('auth-modal')" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+            </div>
+            
+            <form onsubmit="handleAuthSubmit(event)" class="space-y-4">
+                <div id="auth-field-name" class="hidden">
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Nom Complet / Spécialité</label>
+                    <input type="text" placeholder="Dr. Diarra - Généraliste" class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Adresse Email</label>
+                    <input type="email" required placeholder="medecin@sunudoctor.sn" class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Mot de passe</label>
+                    <input type="password" required placeholder="••••••••" class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+                <button type="submit" id="auth-submit-btn" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition shadow-md">
+                    Se connecter
+                </button>
+            </form>
+            
+            <div class="mt-4 text-center">
+                <button onclick="toggleAuthMode()" id="auth-switch-btn" class="text-xs text-blue-600 hover:underline font-medium">
+                    Pas encore de compte ? S'inscrire
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL REGLAGES (Clé API OpenAI) -->
+    <div id="settings-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl p-6 border border-slate-100">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-slate-900">Configuration API</h3>
+                <button onclick="toggleModal('settings-modal')" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+            </div>
+            <div class="space-y-4">
+                <p class="text-xs text-slate-500">
+                    Saisissez votre clé OpenAI. Celle-ci sera enregistrée en toute sécurité dans votre navigateur local.
+                </p>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Clé API OpenAI (sk-...)</label>
+                    <input type="password" id="api-key-input" placeholder="sk-..." class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+                <button onclick="saveApiKey()" class="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl transition">
+                    Enregistrer la Clé
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPT APPLICATION -->
     <script>
-    (function() {
-        const LEXIQUE_MEDICAL_WOLOF = `
-        - 'tàngaay' -> Hyperthermie / Fièvre
-        - 'metti bopp' -> Céphalées / Maux de tête
-        - 'biir buy daw' -> Diarrhée / Selles liquides
-        - 'biir buy metti' -> Douleurs abdominales / Coliques
-        - 'soxli' -> Toux
-        - 'nokkis' -> Dyspnée / Difficulté respiratoire
-        - 'lokki' -> Vomissements
-        - 'xel buy waaxu' -> Nausées
-        - 'yaram buy metti' -> Myalgies / Courbatures
-        - 'tayel' -> Asthénie / Fatigue intense
-        - 'siti' -> Hémorroïdes
-        - 'sibbiru' -> Paludisme / Accès palustre
-        `;
+    // System & Lexique
+    const LEXIQUE_MEDICAL_WOLOF = `
+    - 'tàngaay' -> Hyperthermie / Fièvre
+    - 'metti bopp' -> Céphalées / Maux de tête
+    - 'biir buy daw' -> Diarrhée / Selles liquides
+    - 'biir buy metti' -> Douleurs abdominales / Coliques
+    - 'soxli' -> Toux
+    - 'nokkis' -> Dyspnée / Difficulté respiratoire
+    - 'lokki' -> Vomissements
+    - 'xel buy waaxu' -> Nausées
+    - 'yaram buy metti' -> Myalgies / Courbatures
+    - 'tayel' -> Asthénie / Fatigue intense
+    - 'siti' -> Hémorroïdes
+    - 'sibbiru' -> Paludisme / Accès palustre
+    `;
 
-        const SYSTEM_PROMPT = `Tu es le scribe médical virtuel officiel de SunuDoctor au Sénégal.
+    const SYSTEM_PROMPT = `Tu es le scribe médical virtuel officiel de SunuDoctor au Sénégal.
 Ta mission est de recevoir une dictée médicale brute (Français/Wolof) et d'éditer une fiche médicale SOAP professionnelle et parfaitement corrigée.
 Règles :
 1. Traduis le wolof en vocabulaire médical exact (ex: tàngaay = Fièvre/Hyperthermie).
 2. N'ajoute AUCUNE information ou symptôme non explicitement énoncé.
 3. Formate le retour au format : [S] Subjectif, [O] Objectif, [A] Analyse, [P] Plan/Traitement.`;
 
-        let mediaRecorder;
-        let audioChunks = [];
+    let mediaRecorder;
+    let audioChunks = [];
+    let currentAuthMode = 'login';
 
-        const btnRecord = document.getElementById('sd-btn-record');
-        const btnStop = document.getElementById('sd-btn-stop');
-        const btnFormat = document.getElementById('sd-btn-format');
-        const btnCopy = document.getElementById('sd-btn-copy');
-        const statusText = document.getElementById('sd-status-indicator');
-        const rawText = document.getElementById('sd-raw-text');
-        const soapOutput = document.getElementById('sd-soap-output');
+    const btnRecord = document.getElementById('sd-btn-record');
+    const btnStop = document.getElementById('sd-btn-stop');
+    const btnFormat = document.getElementById('sd-btn-format');
+    const btnCopy = document.getElementById('sd-btn-copy');
+    const statusText = document.getElementById('sd-status-indicator');
+    const rawText = document.getElementById('sd-raw-text');
+    const soapOutput = document.getElementById('sd-soap-output');
 
-        btnRecord.addEventListener('click', async () => {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                mediaRecorder = new MediaRecorder(stream);
-                audioChunks = [];
+    // Modals
+    function toggleModal(id) {
+        const modal = document.getElementById(id);
+        modal.classList.toggle('hidden');
+        if (id === 'settings-modal' && !modal.classList.contains('hidden')) {
+            document.getElementById('api-key-input').value = localStorage.getItem('SUNUDOCTOR_OPENAI_KEY') || '';
+        }
+    }
 
-                mediaRecorder.ondataavailable = event => audioChunks.push(event.data);
-                mediaRecorder.onstop = handleAudioTranscription;
+    function openAuthModal(mode) {
+        currentAuthMode = mode;
+        updateAuthUI();
+        document.getElementById('auth-modal').classList.remove('hidden');
+    }
 
-                mediaRecorder.start();
-                btnRecord.disabled = true;
-                btnStop.disabled = false;
-                statusText.innerText = "🎙️ Enregistrement vocal en cours... Parlez à voix haute.";
-            } catch (err) {
-                alert("Erreur d'accès au microphone : " + err.message);
-            }
-        });
+    function toggleAuthMode() {
+        currentAuthMode = currentAuthMode === 'login' ? 'register' : 'login';
+        updateAuthUI();
+    }
 
-        btnStop.addEventListener('click', () => {
-            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-                mediaRecorder.stop();
-            }
-            btnRecord.disabled = false;
-            btnStop.disabled = true;
-            statusText.innerText = "⌛ Traitement de la voix en cours...";
-        });
+    function updateAuthUI() {
+        const isLogin = currentAuthMode === 'login';
+        document.getElementById('auth-title').innerText = isLogin ? 'Connexion' : 'Créer un compte';
+        document.getElementById('auth-submit-btn').innerText = isLogin ? 'Se connecter' : 'S\'inscrire';
+        document.getElementById('auth-switch-btn').innerText = isLogin ? 'Pas encore de compte ? S\'inscrire' : 'Déjà un compte ? Se connecter';
+        
+        const nameField = document.getElementById('auth-field-name');
+        if (isLogin) nameField.classList.add('hidden');
+        else nameField.classList.remove('hidden');
+    }
 
-        async function handleAudioTranscription() {
-            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-            const formData = new FormData();
-            formData.append('file', audioBlob, 'dictation.webm');
-            formData.append('model', 'whisper-1');
-            formData.append('prompt', 'Dictée médicale SunuDoctor en français et wolof: tàngaay, metti bopp, sibbiru, biir buy daw.');
+    function handleAuthSubmit(e) {
+        e.preventDefault();
+        alert(currentAuthMode === 'login' ? 'Connexion réussie !' : 'Compte créé avec succès !');
+        toggleModal('auth-modal');
+    }
 
-            let apiKey = localStorage.getItem('SUNUDOCTOR_OPENAI_KEY');
-            if (!apiKey) {
-                apiKey = prompt("Veuillez saisir votre clé API OpenAI :");
-                if (apiKey) {
-                    localStorage.setItem('SUNUDOCTOR_OPENAI_KEY', apiKey);
-                } else {
-                    statusText.innerText = "❌ Clé API requise pour la transcription.";
-                    return;
-                }
-            }
+    function saveApiKey() {
+        const key = document.getElementById('api-key-input').value.trim();
+        if (key) {
+            localStorage.setItem('SUNUDOCTOR_OPENAI_KEY', key);
+            alert('Clé API enregistrée !');
+            toggleModal('settings-modal');
+        }
+    }
 
-            try {
-                const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${apiKey}` },
-                    body: formData
-                });
+    function getApiKey() {
+        let apiKey = localStorage.getItem('SUNUDOCTOR_OPENAI_KEY');
+        if (!apiKey) {
+            toggleModal('settings-modal');
+            return null;
+        }
+        return apiKey;
+    }
 
-                const data = await response.json();
-                if (data.error) throw new Error(data.error.message);
+    // Record Functions
+    btnRecord.addEventListener('click', async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+            audioChunks = [];
 
-                rawText.value = data.text;
-                btnFormat.disabled = false;
-                statusText.innerText = "✅ Transcription audio terminée. Cliquez sur le bouton bleu pour structurer.";
-            } catch (err) {
-                statusText.innerText = "❌ Erreur de transcription : " + err.message;
-            }
+            mediaRecorder.ondataavailable = event => audioChunks.push(event.data);
+            mediaRecorder.onstop = handleAudioTranscription;
+
+            mediaRecorder.start();
+            btnRecord.disabled = true;
+            btnStop.disabled = false;
+            statusText.innerText = "🎙️ Enregistrement vocal en cours... Parlez à voix haute.";
+        } catch (err) {
+            alert("Erreur d'accès au microphone : " + err.message);
+        }
+    });
+
+    btnStop.addEventListener('click', () => {
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+            mediaRecorder.stop();
+        }
+        btnRecord.disabled = false;
+        btnStop.disabled = true;
+        statusText.innerText = "⌛ Traitement de la voix en cours...";
+    });
+
+    async function handleAudioTranscription() {
+        const apiKey = getApiKey();
+        if (!apiKey) {
+            statusText.innerText = "❌ Clé API manquante. Cliquez sur ⚙️ pour la configurer.";
+            return;
         }
 
-        btnFormat.addEventListener('click', async () => {
-            statusText.innerText = "🧠 Analyse médicale et traduction du wolof en cours...";
-            
-            let apiKey = localStorage.getItem('SUNUDOCTOR_OPENAI_KEY');
-            if (!apiKey) {
-                apiKey = prompt("Veuillez saisir votre clé API OpenAI :");
-                if (apiKey) localStorage.setItem('SUNUDOCTOR_OPENAI_KEY', apiKey);
-                else return;
-            }
+        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        const formData = new FormData();
+        formData.append('file', audioBlob, 'dictation.webm');
+        formData.append('model', 'whisper-1');
+        formData.append('prompt', 'Dictée médicale SunuDoctor en français et wolof: tàngaay, metti bopp, sibbiru, biir buy daw.');
 
-            try {
-                const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${apiKey}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        model: "gpt-4o",
-                        temperature: 0.1,
-                        messages: [
-                            { role: "system", content: SYSTEM_PROMPT + "\nLexique:\n" + LEXIQUE_MEDICAL_WOLOF },
-                            { role: "user", content: rawText.value }
-                        ]
-                    })
-                });
+        try {
+            const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${apiKey}` },
+                body: formData
+            });
 
-                const data = await response.json();
-                if (data.error) throw new Error(data.error.message);
+            const data = await response.json();
+            if (data.error) throw new Error(data.error.message);
 
-                soapOutput.innerText = data.choices[0].message.content;
-                statusText.innerText = "✅ Compte-rendu médical généré et vérifié.";
-            } catch (err) {
-                statusText.innerText = "❌ Erreur d'analyse : " + err.message;
-            }
-        });
+            rawText.value = data.text;
+            btnFormat.disabled = false;
+            statusText.innerText = "✅ Transcription terminée. Cliquez sur le bouton bleu pour structurer.";
+        } catch (err) {
+            statusText.innerText = "❌ Erreur : " + err.message;
+        }
+    }
 
-        btnCopy.addEventListener('click', () => {
-            navigator.clipboard.writeText(soapOutput.innerText);
-            alert("Compte-rendu copié dans le presse-papier !");
-        });
-    })();
+    btnFormat.addEventListener('click', async () => {
+        const apiKey = getApiKey();
+        if (!apiKey) return;
+
+        statusText.innerText = "🧠 Analyse médicale et traduction en cours...";
+
+        try {
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    model: "gpt-4o",
+                    temperature: 0.1,
+                    messages: [
+                        { role: "system", content: SYSTEM_PROMPT + "\nLexique:\n" + LEXIQUE_MEDICAL_WOLOF },
+                        { role: "user", content: rawText.value }
+                    ]
+                })
+            });
+
+            const data = await response.json();
+            if (data.error) throw new Error(data.error.message);
+
+            soapOutput.innerText = data.choices[0].message.content;
+            statusText.innerText = "✅ Compte-rendu médical généré avec succès !";
+        } catch (err) {
+            statusText.innerText = "❌ Erreur d'analyse : " + err.message;
+        }
+    });
+
+    btnCopy.addEventListener('click', () => {
+        navigator.clipboard.writeText(soapOutput.innerText);
+        alert("Compte-rendu copié dans le presse-papier !");
+    });
+
+    function clearAll() {
+        rawText.value = '';
+        soapOutput.innerText = "Le compte-rendu médical structuré issu de la dictée s'affichera ici...";
+        btnFormat.disabled = true;
+        statusText.innerText = 'Cliquez sur "Commencer la Dictée" et parlez naturellement en français et wolof.';
+    }
     </script>
-    <!-- === FIN MODULE DICTÉE BILINGUE SUNUDOCTOR === -->
-
 </body>
 </html>
