@@ -31,23 +31,40 @@
     html { scroll-behavior: smooth; }
   </style>
 </head>
-<body class="bg-slate-50 text-slate-900 antialiased">
+<body class="bg-slate-50 text-slate-900 antialiased relative">
 
   <!-- NAVIGATION -->
-  <nav class="flex items-center justify-between px-6 py-4 max-w-7xl mx-auto">
+  <nav class="flex items-center justify-between px-6 py-4 max-w-7xl mx-auto relative z-20">
     <div class="flex items-center gap-2">
       <div class="bg-blue-600 p-2 rounded-lg">
         <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
       </div>
       <span class="text-xl font-bold tracking-tight text-blue-900">SunuDoctor</span>
     </div>
+
+    <!-- Liens Desktop -->
     <div class="hidden md:flex items-center gap-8 font-medium text-slate-600">
       <a href="#features" class="hover:text-blue-600 transition-colors">Fonctionnalités</a>
       <a href="#pricing" class="hover:text-blue-600 transition-colors">Tarifs</a>
-      <a href="#login" class="px-4 py-2 rounded-full border border-blue-600 text-blue-600 hover:bg-blue-50 transition-colors">Connexion</a>
+      <button onclick="openLoginModal()" class="px-4 py-2 rounded-full border border-blue-600 text-blue-600 hover:bg-blue-50 transition-colors">Connexion</button>
       <a href="#register" class="px-4 py-2 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-sm">Essai Gratuit</a>
     </div>
+
+    <!-- Bouton Mobile Hamburger -->
+    <button id="mobileMenuBtn" class="md:hidden text-slate-700 focus:outline-none p-2">
+      <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+      </svg>
+    </button>
   </nav>
+
+  <!-- Menu Mobile Déroulant -->
+  <div id="mobileMenu" class="hidden md:hidden bg-white border-b border-slate-200 px-6 py-4 space-y-3">
+    <a href="#features" onclick="toggleMobileMenu()" class="block text-slate-600 font-medium">Fonctionnalités</a>
+    <a href="#pricing" onclick="toggleMobileMenu()" class="block text-slate-600 font-medium">Tarifs</a>
+    <button onclick="toggleMobileMenu(); openLoginModal();" class="block w-full text-left font-medium text-blue-600">Connexion</button>
+    <a href="#register" onclick="toggleMobileMenu()" class="block text-center py-2 rounded-full bg-blue-600 text-white font-medium">Essai Gratuit</a>
+  </div>
 
   <!-- HERO -->
   <header class="px-6 py-16 md:py-24 max-w-7xl mx-auto text-center">
@@ -89,7 +106,6 @@
           <p class="text-slate-600">De la voix au dossier médical en quelques secondes.</p>
         </div>
         <div class="relative max-w-5xl mx-auto grid md:grid-cols-2 gap-8 items-center p-8 rounded-3xl bg-slate-50 border border-slate-200 shadow-inner">
-          <!-- Interface vocale -->
           <div class="bg-white p-6 rounded-2xl shadow-xl border border-slate-100 flex flex-col items-center justify-center space-y-6">
             <div class="w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center shadow-lg animate-pulse">
               <svg class="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 18.75a6 6 0 0 0 6-6v-1.5m-6 7.5a6 6 0 0 1-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 0 1-3-3V4.5a3 3 0 1 1 6 0v8.25a3 3 0 0 1-3 3Z"/></svg>
@@ -97,7 +113,6 @@
             <div id="wave" class="flex items-end gap-1 h-12"></div>
             <p class="text-sm font-medium text-slate-500 italic">"Patient se plaint de fièvre..."</p>
           </div>
-          <!-- Note structurée -->
           <div class="bg-white p-6 rounded-2xl shadow-xl border border-slate-100 relative overflow-hidden">
             <div class="absolute top-0 right-0 bg-blue-100 text-blue-600 px-3 py-1 text-[10px] font-bold rounded-bl-lg">TRANSCRIPTION IA</div>
             <div class="flex items-center gap-2 mb-4">
@@ -257,7 +272,6 @@
             <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21"/></svg>
             <select id="clinicSelect" required class="w-full pl-10 pr-10 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none">
               <option value="" disabled selected>Sélectionnez votre établissement</option>
-              <!-- Options injectées par JavaScript -->
             </select>
             <svg class="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg>
           </div>
@@ -286,10 +300,51 @@
       </form>
 
       <div class="mt-6 text-center">
-        <p class="text-sm text-slate-500">Déjà inscrit ? <a href="#login" class="text-blue-600 font-semibold hover:underline">Se connecter</a></p>
+        <p class="text-sm text-slate-500">Déjà inscrit ? <button onclick="openLoginModal()" class="text-blue-600 font-semibold hover:underline">Se connecter</button></p>
       </div>
     </div>
   </section>
+
+  <!-- MODALE CONNEXION -->
+  <div id="loginModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-3xl max-w-md w-full p-8 relative shadow-2xl animate-slideDown">
+      <button onclick="closeLoginModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
+        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+      </button>
+      <div class="text-center mb-6">
+        <h3 class="text-2xl font-bold text-slate-900">Espace Praticien</h3>
+        <p class="text-sm text-slate-500">Connectez-vous à votre compte SunuDoctor</p>
+      </div>
+      <form id="loginForm" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Email professionnel</label>
+          <input type="email" required class="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="dr.diallo@email.sn" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Mot de passe</label>
+          <input type="password" required class="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="••••••••" />
+        </div>
+        <button type="submit" class="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors shadow-lg">Connexion</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODALE LEGAL -->
+  <div id="legalModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-8 relative shadow-2xl max-h-[80vh] overflow-y-auto">
+      <button onclick="closeLegalModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
+        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+      </button>
+      <h3 class="text-xl font-bold text-slate-900 mb-4">Mentions Légales & Confidentialité</h3>
+      <p class="text-slate-600 text-sm leading-relaxed mb-4">
+        SunuDoctor est engagé dans la protection des données de santé au Sénégal conformément aux directives de la CDP (Commission des Données Personnelles).
+      </p>
+      <p class="text-slate-600 text-sm leading-relaxed mb-4">
+        Toutes les données transcrites sont cryptées de bout en bout et hébergées sur des serveurs sécurisés garantissant le respect strict du secret médical.
+      </p>
+      <button onclick="closeLegalModal()" class="w-full py-2 bg-slate-100 text-slate-700 font-semibold rounded-xl hover:bg-slate-200">Fermer</button>
+    </div>
+  </div>
 
   <!-- FOOTER -->
   <footer class="px-6 py-12 bg-slate-900 text-slate-400">
@@ -301,9 +356,9 @@
         <span class="text-lg font-bold">SunuDoctor</span>
       </div>
       <div class="flex gap-8 text-sm">
-        <a href="#" class="hover:text-white transition-colors">Mentions Légales</a>
-        <a href="#" class="hover:text-white transition-colors">Confidentialité</a>
-        <a href="#" class="hover:text-white transition-colors">Contact</a>
+        <button onclick="openLegalModal()" class="hover:text-white transition-colors">Mentions Légales</button>
+        <button onclick="openLegalModal()" class="hover:text-white transition-colors">Confidentialité</button>
+        <a href="mailto:contact@sunudoctor.sn" class="hover:text-white transition-colors">Contact</a>
       </div>
       <div class="flex items-center gap-2 text-xs text-slate-500">
         <svg class="w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z"/></svg>
@@ -314,10 +369,7 @@
   </footer>
 
   <script>
-    /* =========================================================
-       LISTE COMPLÈTE DES ÉTABLISSEMENTS DE SANTÉ DU SÉNÉGAL
-       Regroupés par régions/zones (optgroup).
-       ========================================================= */
+    /* Liste des établissements */
     const CLINIC_GROUPS = [
       {
         region: "Dakar — Centre & Corniche",
@@ -401,9 +453,8 @@
     ];
 
     const OTHER_CLINIC_VALUE = "__other__";
-
-    /* ---- Remplissage du menu déroulant ---- */
     const select = document.getElementById("clinicSelect");
+
     CLINIC_GROUPS.forEach(function (group) {
       const optgroup = document.createElement("optgroup");
       optgroup.label = group.region;
@@ -416,12 +467,12 @@
       });
       select.appendChild(optgroup);
     });
+
     const otherOpt = document.createElement("option");
     otherOpt.value = OTHER_CLINIC_VALUE;
     otherOpt.textContent = "+ Autre établissement (Saisie libre)";
     select.appendChild(otherOpt);
 
-    /* ---- Affichage dynamique du champ de saisie libre ---- */
     const customWrap = document.getElementById("customClinicWrap");
     const customInput = document.getElementById("customClinicInput");
     select.addEventListener("change", function () {
@@ -434,14 +485,47 @@
       }
     });
 
-    /* ---- Soumission du formulaire ---- */
+    /* Soumission inscription */
     document.getElementById("registerForm").addEventListener("submit", function (e) {
       e.preventDefault();
       const selectedClinic = select.value === OTHER_CLINIC_VALUE ? customInput.value.trim() : select.value;
-      alert("Inscription réussie !\nÉtablissement : " + selectedClinic);
+      alert("Demande d'inscription enregistrée avec succès !\nÉtablissement : " + selectedClinic);
     });
 
-    /* ---- Animation de l'onde sonore ---- */
+    /* Modale Connexion */
+    function openLoginModal() {
+      document.getElementById("loginModal").classList.remove("hidden");
+      document.getElementById("loginModal").classList.add("flex");
+    }
+    function closeLoginModal() {
+      document.getElementById("loginModal").classList.add("hidden");
+      document.getElementById("loginModal").classList.remove("flex");
+    }
+    document.getElementById("loginForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+      alert("Tentative de connexion... Vos identifiants ont été validés.");
+      closeLoginModal();
+    });
+
+    /* Modale Légale */
+    function openLegalModal() {
+      document.getElementById("legalModal").classList.remove("hidden");
+      document.getElementById("legalModal").classList.add("flex");
+    }
+    function closeLegalModal() {
+      document.getElementById("legalModal").classList.add("hidden");
+      document.getElementById("legalModal").classList.remove("flex");
+    }
+
+    /* Menu Mobile */
+    const mobileMenuBtn = document.getElementById("mobileMenuBtn");
+    const mobileMenu = document.getElementById("mobileMenu");
+    function toggleMobileMenu() {
+      mobileMenu.classList.toggle("hidden");
+    }
+    mobileMenuBtn.addEventListener("click", toggleMobileMenu);
+
+    /* Animation onde sonore */
     const wave = document.getElementById("wave");
     const heights = [16, 32, 48, 24, 40, 56, 28, 44, 20, 36, 52, 32];
     heights.forEach(function (h, i) {
@@ -452,6 +536,5 @@
       wave.appendChild(bar);
     });
   </script>
-
 </body>
 </html>
