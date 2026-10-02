@@ -50,6 +50,9 @@ class Settings(BaseSettings):
     rate_limit_requests: int = 60
     rate_limit_window: int = 60
 
+    # Optional: path to a built frontend to serve as a single-origin SPA.
+    frontend_dist: str = ""
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]

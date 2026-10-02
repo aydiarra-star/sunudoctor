@@ -9,10 +9,12 @@ from __future__ import annotations
 
 import time
 from collections import defaultdict
+from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.api.routes import admin, auth, billing, clinical, coordination, patients, scribe
 from app.core.config import settings
@@ -107,3 +109,25 @@ app.include_router(clinical.router, prefix="/api")
 app.include_router(coordination.router, prefix="/api")
 app.include_router(billing.router, prefix="/api")
 app.include_router(admin.router, prefix="/api")
+
+
+# --- Optional static serving of the built frontend (single-origin deploys) ---
+# When FRONTEND_DIST points at a built frontend, the API also serves the SPA so
+# the whole product runs behind one public URL. API routes keep precedence
+# because they are registered above.
+_frontend_dist = Path(settings.frontend_dist) if settings.frontend_dist else None
+if _frontend_dist and _frontend_dist.is_dir():
+    app.mount(
+        "/assets",
+        StaticFiles(directory=str(_frontend_dist / "assets")),
+        name="assets",
+    )
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    def spa(full_path: str):
+        if full_path.startswith("api/"):
+            return JSONResponse(status_code=404, content={"detail": "Not Found"})
+        candidate = _frontend_dist / full_path
+        if full_path and candidate.is_file():
+            return FileResponse(candidate)
+        return FileResponse(_frontend_dist / "index.html")
