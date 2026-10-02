@@ -101,7 +101,20 @@ async def security_middleware(request: Request, call_next):
 
 @app.on_event("startup")
 def on_startup() -> None:
-    Base.metadata.create_all(bind=engine)
+    # In production the schema is managed by migrations (alembic upgrade head),
+    # never by create_all. create_all is kept for local dev and tests only, so a
+    # fresh developer checkout still works with zero setup.
+    problems = settings.production_problems()
+    if problems:
+        if settings.is_production:
+            # Fail fast: a misconfigured production instance must not start and
+            # silently serve demo output as if it were real.
+            raise RuntimeError(
+                "Configuration de production invalide:\n- " + "\n- ".join(problems)
+            )
+        logger.warning("production readiness warnings: %s", "; ".join(problems))
+    if not settings.is_production:
+        Base.metadata.create_all(bind=engine)
 
 
 @app.get("/api/health")

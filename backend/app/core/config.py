@@ -72,6 +72,50 @@ class Settings(BaseSettings):
     # Optional: path to a built frontend to serve as a single-origin SPA.
     frontend_dist: str = ""
 
+    # Roles for which MFA is mandatory. Enforced at login when the user has MFA
+    # enabled; operators should require enrolment for these roles.
+    mfa_required_for_roles: str = "admin,structure_admin"
+
+    @property
+    def mfa_required_role_list(self) -> list[str]:
+        return [r.strip() for r in self.mfa_required_for_roles.split(",") if r.strip()]
+
+    @property
+    def is_production(self) -> bool:
+        return self.environment == "production"
+
+    def production_problems(self) -> list[str]:
+        """Return a list of reasons the current config is unsafe for production.
+
+        Empty means safe. This is deliberately conservative: it names every
+        problem at once so an operator can fix them together. It never silently
+        upgrades a demo capability to "live".
+        """
+        problems: list[str] = []
+        if self.secret_key == "dev-only-insecure-change-me" or len(self.secret_key) < 32:
+            problems.append("SECRET_KEY doit être défini et faire au moins 32 caractères.")
+        if self.database_url.startswith("sqlite"):
+            problems.append("DATABASE_URL doit pointer vers PostgreSQL en production.")
+        if self.ai_mode == "live":
+            if self.stt_provider != "demo" and not self.stt_configured:
+                problems.append(
+                    f"STT_PROVIDER={self.stt_provider} sélectionné mais aucune clé fournie."
+                )
+            if self.clinical_ai_provider != "demo" and not self.clinical_ai_configured:
+                problems.append(
+                    f"CLINICAL_AI_PROVIDER={self.clinical_ai_provider} sélectionné mais "
+                    "OPENAI_API_KEY est absent."
+                )
+        if self.payment_mode == "live":
+            if not any(self.payment_provider_configured.values()):
+                problems.append("PAYMENT_MODE=live mais aucun fournisseur n'est configuré.")
+            if not any(self.webhook_secrets.values()):
+                problems.append(
+                    "PAYMENT_MODE=live mais aucun secret de webhook n'est configuré "
+                    "(les paiements ne pourraient pas être confirmés de façon fiable)."
+                )
+        return problems
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]

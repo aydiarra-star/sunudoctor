@@ -33,3 +33,6 @@ backend/.coverage
 
 # TypeScript build info
 *.tsbuildinfo
+
+# Production env (secrets)
+.env.production
