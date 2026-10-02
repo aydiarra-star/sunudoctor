@@ -28,7 +28,7 @@ class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
-    user: "UserOut"
+    user: UserOut
 
 
 class RefreshRequest(BaseModel):
@@ -48,7 +48,7 @@ class UserOut(BaseModel):
 
 
 class MeOut(UserOut):
-    professional: "ProfessionalOut | None" = None
+    professional: ProfessionalOut | None = None
 
 
 class ProfessionalOut(BaseModel):

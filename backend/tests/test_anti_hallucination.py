@@ -10,7 +10,6 @@ from app.services.ai import safety
 from app.services.ai.base import StructuredField, StructuredNote
 from app.services.ai.demo_providers import DemoClinicalAI
 
-
 # ---- Negation handling ----
 
 def test_pas_de_fievre_is_not_fever():

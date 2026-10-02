@@ -8,13 +8,13 @@ about what is running.
 from __future__ import annotations
 
 from app.core.config import settings
+from app.services.ai import safety as safety_engine
 from app.services.ai.base import (
     ClinicalAIProvider,
     SafetyProvider,
     SpeechToTextProvider,
     TranslationProvider,
 )
-from app.services.ai import safety as safety_engine
 from app.services.ai.demo_providers import (
     DemoClinicalAI,
     DemoSpeechToText,

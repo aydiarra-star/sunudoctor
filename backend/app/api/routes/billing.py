@@ -5,7 +5,7 @@ deletes or modifies a clinical record.
 """
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -51,7 +51,7 @@ def subscribe(
     plan = pricing.PLANS_BY_CODE.get(payload.plan_code)
     if plan is None:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Plan inconnu")
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     sub = Subscription(
         owner_user_id=user.id,
         organization_id=user.organization_id,

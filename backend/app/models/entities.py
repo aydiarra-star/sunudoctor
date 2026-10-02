@@ -12,13 +12,12 @@ from __future__ import annotations
 
 import enum
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import (
     Boolean,
     DateTime,
     Enum,
-    Float,
     ForeignKey,
     Integer,
     String,
@@ -34,7 +33,7 @@ def _uuid() -> str:
 
 
 def utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class Role(str, enum.Enum):

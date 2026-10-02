@@ -7,7 +7,7 @@ but cannot read clinical content without an explicit, audited grant.
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -24,7 +24,7 @@ from app.models.entities import (
     VerificationRequest,
     VerificationStatus,
 )
-from app.schemas import UserOut, VerificationDecision
+from app.schemas import VerificationDecision
 from app.services import audit
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -128,12 +128,12 @@ def decide_verification(
     try:
         new_status = VerificationStatus(payload.status)
     except ValueError:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Statut invalide")
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Statut invalide") from None
 
     req.status = new_status
     req.notes = payload.notes
     req.reviewed_by = admin.id
-    req.reviewed_at = datetime.now(timezone.utc)
+    req.reviewed_at = datetime.now(UTC)
     prof = db.get(Professional, req.professional_id)
     if prof:
         prof.verification_status = new_status
@@ -181,17 +181,17 @@ def list_audit(
     logs = q.order_by(AuditLog.created_at.desc()).limit(min(limit, 500)).all()
     return [
         {
-            "id": l.id,
-            "actor_id": l.actor_id,
-            "actor_role": l.actor_role,
-            "action": l.action,
-            "resource_type": l.resource_type,
-            "resource_id": l.resource_id,
-            "patient_id": l.patient_id,
-            "created_at": l.created_at,
-            "meta": json.loads(l.meta_json or "{}"),
+            "id": entry.id,
+            "actor_id": entry.actor_id,
+            "actor_role": entry.actor_role,
+            "action": entry.action,
+            "resource_type": entry.resource_type,
+            "resource_id": entry.resource_id,
+            "patient_id": entry.patient_id,
+            "created_at": entry.created_at,
+            "meta": json.loads(entry.meta_json or "{}"),
         }
-        for l in logs
+        for entry in logs
     ]
 
 

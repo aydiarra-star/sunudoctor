@@ -13,7 +13,7 @@ administrative role does NOT imply access to medical data.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from app.models.entities import CareTeamAccess, Role, User
 
@@ -37,7 +37,7 @@ def is_clinical(user: User) -> bool:
 
 def can_access_patient(db, user: User, patient_id: str, *, now: datetime | None = None) -> bool:
     """Return True only if the user has a valid, scoped grant for this patient."""
-    now = now or datetime.now(timezone.utc)
+    now = now or datetime.now(UTC)
 
     if user.role == Role.patient:
         # A patient can access their own record only if their user id maps to it.
@@ -54,7 +54,7 @@ def can_access_patient(db, user: User, patient_id: str, *, now: datetime | None 
     if grant.expires_at is not None:
         expires = grant.expires_at
         if expires.tzinfo is None:
-            expires = expires.replace(tzinfo=timezone.utc)
+            expires = expires.replace(tzinfo=UTC)
         if expires < now:
             return False
     return True

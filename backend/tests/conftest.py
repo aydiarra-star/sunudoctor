@@ -82,9 +82,9 @@ def patient_user(client):
 @pytest.fixture()
 def admin(client):
     # platform_admin is not self-registerable; create directly.
+    from app.core.database import SessionLocal
     from app.core.security import hash_password
     from app.models.entities import Role, User
-    from app.core.database import SessionLocal
 
     db = SessionLocal()
     u = db.query(User).filter(User.email == "admin@test.sn").first()

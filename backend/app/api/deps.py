@@ -22,7 +22,9 @@ def get_current_user(
     try:
         payload = decode_token(credentials.credentials)
     except JWTError:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Jeton invalide ou expiré")
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED, "Jeton invalide ou expiré"
+        ) from None
     if payload.get("type") != "access":
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Type de jeton invalide")
     user = db.get(User, payload.get("sub"))

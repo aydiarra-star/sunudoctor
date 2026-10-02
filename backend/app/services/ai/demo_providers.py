@@ -14,15 +14,15 @@ from __future__ import annotations
 
 import re
 
+from app.services.ai import safety
 from app.services.ai.base import (
+    ClinicalAIProvider,
     SpeechToTextProvider,
     StructuredField,
     StructuredNote,
     TranscriptionResult,
     TranslationProvider,
-    ClinicalAIProvider,
 )
-from app.services.ai import safety
 
 # Symptom lexicon (French + Wolof). Used only to locate spans in the source.
 SYMPTOM_TERMS = [

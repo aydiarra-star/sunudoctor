@@ -154,7 +154,9 @@ def refresh(payload: RefreshRequest, db: Session = Depends(get_db)):
     try:
         data = decode_token(payload.refresh_token)
     except JWTError:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Jeton de rafraîchissement invalide")
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED, "Jeton de rafraîchissement invalide"
+        ) from None
     if data.get("type") != "refresh":
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Type de jeton invalide")
     user = db.get(User, data.get("sub"))

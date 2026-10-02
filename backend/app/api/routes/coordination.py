@@ -1,7 +1,7 @@
 """Messaging, care coordination, consents and break-glass access."""
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -176,8 +176,8 @@ def set_consent(
         grantee_id=payload.grantee_id,
         scope=payload.scope,
         granted=payload.granted,
-        granted_at=datetime.now(timezone.utc) if payload.granted else None,
-        revoked_at=None if payload.granted else datetime.now(timezone.utc),
+        granted_at=datetime.now(UTC) if payload.granted else None,
+        revoked_at=None if payload.granted else datetime.now(UTC),
         document_ref=payload.document_ref,
     )
     db.add(consent)
@@ -248,7 +248,7 @@ def break_glass(
         commit=False,
     )
     db.flush()
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     event = BreakGlassEvent(
         actor_id=user.id,
         patient_id=payload.patient_id,

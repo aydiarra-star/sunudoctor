@@ -17,8 +17,8 @@ from app.api.deps import get_client_meta, get_current_user
 from app.core.database import get_db
 from app.core.rbac import can_access_patient
 from app.models.entities import (
-    AITranscription,
     AIStructuredNote,
+    AITranscription,
     Consultation,
     NoteVersion,
     Patient,
@@ -33,7 +33,6 @@ from app.schemas import (
     ValidateRequest,
 )
 from app.services import audit
-from app.services.ai import safety
 from app.services.ai.factory import (
     get_clinical_ai_provider,
     get_safety_provider,
@@ -123,7 +122,7 @@ def transcribe(
         try:
             audio = base64.b64decode(payload.audio_base64)
         except Exception:
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Audio invalide")
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Audio invalide") from None
 
     provider, is_demo = get_stt_provider()
     result = provider.transcribe(

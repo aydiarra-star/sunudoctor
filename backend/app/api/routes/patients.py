@@ -6,8 +6,6 @@ scoped and their clinical reads are audited and require an explicit grant.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 

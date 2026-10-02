@@ -7,7 +7,7 @@ Notes:
 """
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -26,7 +26,7 @@ def verify_password(plain: str, hashed: str) -> bool:
 
 
 def _create_token(subject: str, expires_delta: timedelta, token_type: str, **claims) -> str:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     payload = {
         "sub": subject,
         "iat": int(now.timestamp()),
@@ -58,10 +58,10 @@ def decode_token(token: str) -> dict:
 
 
 __all__ = [
-    "hash_password",
-    "verify_password",
+    "JWTError",
     "create_access_token",
     "create_refresh_token",
     "decode_token",
-    "JWTError",
+    "hash_password",
+    "verify_password",
 ]

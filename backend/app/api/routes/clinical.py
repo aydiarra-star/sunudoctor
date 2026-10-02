@@ -6,13 +6,12 @@ the UI must display "Vidéo — configuration requise". It never claims a live c
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_client_meta, get_current_user
-from app.core.config import settings
 from app.core.database import get_db
 from app.core.rbac import can_access_patient
 from app.models.entities import (
@@ -252,7 +251,7 @@ def set_report(
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Non autorisé")
     tele.report = report
     tele.status = "completed"
-    tele.ended_at = datetime.now(timezone.utc)
+    tele.ended_at = datetime.now(UTC)
     db.commit()
     return {"id": tele.id, "status": tele.status}
 
