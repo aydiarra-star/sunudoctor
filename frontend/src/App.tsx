@@ -10,6 +10,7 @@ import { PatientDetail } from "./pages/PatientDetail";
 import { Scribe } from "./pages/Scribe";
 import { Status } from "./pages/Status";
 import { Billing } from "./pages/Billing";
+import { MyVerification, VerificationQueue } from "./pages/Verification";
 import { ListSkeleton } from "./components/ui";
 import {
   Appointments,
@@ -100,6 +101,8 @@ export function AppRoutes() {
         <Route path="profile" element={<Profile />} />
         <Route path="settings" element={<Settings />} />
         <Route path="billing" element={<Billing />} />
+        <Route path="verification" element={<MyVerification />} />
+        <Route path="admin/verification-queue" element={<VerificationQueue />} />
         <Route path="services" element={<ComingSoon title="Services" />} />
         <Route path="professionals" element={<ComingSoon title="Professionnels" />} />
 

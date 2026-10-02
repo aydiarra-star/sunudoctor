@@ -97,6 +97,7 @@ Voir `docs/testing.md`.
 - [Déploiement](docs/deployment.md)
 - [Tests](docs/testing.md)
 - [Confidentialité](docs/privacy.md)
+- [Vérification & référentiel](docs/verification.md)
 
 ## Déploiement
 

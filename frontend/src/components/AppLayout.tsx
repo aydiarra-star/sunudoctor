@@ -46,6 +46,7 @@ const PROFESSIONAL_NAV: NavItem[] = [
   { to: "/app/messages", label: "Messages", Icon: IconMessages, mobile: true },
   { to: "/app/documents", label: "Documents", Icon: IconDocuments },
   { to: "/app/coordination", label: "Coordination", Icon: IconCoordination },
+  { to: "/app/verification", label: "Vérification", Icon: IconSecurity },
   { to: "/app/profile", label: "Profil", Icon: IconProfile },
   { to: "/app/settings", label: "Paramètres", Icon: IconSettings },
 ];
@@ -79,6 +80,7 @@ const ADMIN_NAV: NavItem[] = [
   { to: "/app/admin/users", label: "Utilisateurs", Icon: IconProfile, mobile: true },
   { to: "/app/admin/organizations", label: "Structures", Icon: IconStructure, mobile: true },
   { to: "/app/admin/verifications", label: "Vérifications", Icon: IconRecords, mobile: true },
+  { to: "/app/admin/verification-queue", label: "File de vérification", Icon: IconRecords },
   { to: "/app/admin/security", label: "Sécurité", Icon: IconSecurity, mobile: true },
   { to: "/app/admin/subscriptions", label: "Abonnements", Icon: IconPayments },
   { to: "/app/admin/payments", label: "Paiements", Icon: IconPayments },
@@ -87,8 +89,17 @@ const ADMIN_NAV: NavItem[] = [
   { to: "/app/admin/config", label: "Configuration", Icon: IconSettings },
 ];
 
+const VERIFICATION_NAV: NavItem[] = [
+  { to: "/app", label: "Accueil", Icon: IconHome, mobile: true },
+  { to: "/app/admin/verification-queue", label: "File de vérification", Icon: IconRecords, mobile: true },
+  { to: "/app/admin/organizations", label: "Référentiel", Icon: IconStructure, mobile: true },
+  { to: "/app/profile", label: "Profil", Icon: IconProfile },
+  { to: "/app/settings", label: "Paramètres", Icon: IconSettings },
+];
+
 function navFor(role: string | undefined): NavItem[] {
   if (role === "platform_admin") return ADMIN_NAV;
+  if (role === "verification_officer") return VERIFICATION_NAV;
   if (role === "patient") return PATIENT_NAV;
   if (role === "org_admin") return ORG_NAV;
   return PROFESSIONAL_NAV;

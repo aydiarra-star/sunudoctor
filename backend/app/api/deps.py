@@ -6,7 +6,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError
 from sqlalchemy.orm import Session
 
-from app.core.database import get_db
+from app.core.database import SessionLocal, get_db
 from app.core.security import decode_token
 from app.models.entities import Role, User
 
@@ -40,6 +40,43 @@ def require_roles(*roles: Role):
         return user
 
     return guard
+
+
+def require_verified_professional(user: User = Depends(get_current_user)) -> User:
+    """Require a professional whose identity has actually been verified.
+
+    A non-verified account keeps a limited account: it can prepare a profile and
+    submit documents, but it cannot author clinical content. Verification is
+    never automatic; see app.services.verification.
+    """
+    from app.core.config import settings
+    from app.models.entities import Professional
+    from app.services import verification
+
+    if not settings.require_verified_professional:
+        return user
+    if user.role in {Role.platform_admin, Role.verification_officer}:
+        return user
+    db = SessionLocal()
+    try:
+        prof = db.query(Professional).filter(Professional.user_id == user.id).first()
+        if prof is None:
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN,
+                "Profil professionnel requis pour cette action.",
+            )
+        if not verification.can_author_clinical(prof.verification_level):
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN,
+                "Vérification professionnelle requise avant de documenter des soins. "
+                "Statut actuel : "
+                + verification.LEVEL_LABELS.get(
+                    prof.verification_level, prof.verification_level.value
+                ),
+            )
+    finally:
+        db.close()
+    return user
 
 
 def request_meta(request: Request) -> dict:

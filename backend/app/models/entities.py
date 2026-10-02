@@ -18,6 +18,7 @@ from sqlalchemy import (
     Boolean,
     DateTime,
     Enum,
+    Float,
     ForeignKey,
     Integer,
     String,
@@ -45,6 +46,7 @@ class Role(str, enum.Enum):
     community_agent = "community_agent"
     social_worker = "social_worker"
     org_admin = "org_admin"
+    verification_officer = "verification_officer"
     platform_admin = "platform_admin"
 
 
@@ -54,6 +56,87 @@ class VerificationStatus(str, enum.Enum):
     verified = "verified"
     refused = "refused"
     to_complete = "to_complete"
+
+
+class FacilityType(str, enum.Enum):
+    """Extensible taxonomy of health facilities.
+
+    Covers public, private, military and paramilitary facilities, as well as
+    community-level structures, mirroring the scope of the national health map.
+    """
+
+    hospital = "HOSPITAL"
+    eps = "EPS"  # Établissement Public de Santé
+    health_center = "HEALTH_CENTER"
+    health_post = "HEALTH_POST"
+    health_hut = "HEALTH_HUT"  # case de santé
+    clinic = "CLINIC"
+    medical_practice = "MEDICAL_PRACTICE"
+    paramedical_practice = "PARAMEDICAL_PRACTICE"
+    laboratory = "LABORATORY"
+    imaging_center = "IMAGING_CENTER"
+    community_health_structure = "COMMUNITY_HEALTH_STRUCTURE"
+    specialized_facility = "SPECIALIZED_FACILITY"
+    military_facility = "MILITARY_FACILITY"
+    paramilitary_facility = "PARAMILITARY_FACILITY"
+    other = "OTHER"
+
+
+class FacilityStatus(str, enum.Enum):
+    """Provenance and trust level of a facility record.
+
+    ``official_verified`` and ``partner_verified`` require an actual authorised
+    source. Nothing is ever promoted to these values automatically.
+    """
+
+    official_verified = "OFFICIAL_VERIFIED"
+    partner_verified = "PARTNER_VERIFIED"
+    pending_verification = "PENDING_VERIFICATION"
+    unverified = "UNVERIFIED"
+    inactive = "INACTIVE"
+    archived = "ARCHIVED"
+
+
+class RegistrySourceType(str, enum.Enum):
+    official = "OFFICIAL"
+    partner = "PARTNER"
+    manual = "MANUAL"
+    community = "COMMUNITY"
+
+
+class VerificationLevel(str, enum.Enum):
+    """Granular professional-verification levels.
+
+    These are ordered by increasing trust. ``unverified`` is the default for
+    every new account; no path promotes a user automatically.
+    """
+
+    unverified = "UNVERIFIED"
+    identity_submitted = "IDENTITY_SUBMITTED"
+    facility_matched = "FACILITY_MATCHED"
+    professional_pending = "PROFESSIONAL_PENDING"
+    verified = "VERIFIED"
+    facility_admin_verified = "FACILITY_ADMIN_VERIFIED"
+    official_source_verified = "OFFICIAL_SOURCE_VERIFIED"
+    rejected = "REJECTED"
+    suspended = "SUSPENDED"
+    duplicate_review = "DUPLICATE_REVIEW"
+
+
+class AffiliationStatus(str, enum.Enum):
+    requested = "REQUESTED"
+    approved = "APPROVED"
+    rejected = "REJECTED"
+    suspended = "SUSPENDED"
+    ended = "ENDED"
+
+
+class RegistryImportStatus(str, enum.Enum):
+    received = "RECEIVED"
+    validated = "VALIDATED"
+    review = "REVIEW"
+    published = "PUBLISHED"
+    rejected = "REJECTED"
 
 
 class TimestampMixin:
@@ -110,6 +193,11 @@ class Professional(Base, TimestampMixin):
     )
     verification_status: Mapped[VerificationStatus] = mapped_column(
         Enum(VerificationStatus), default=VerificationStatus.pending
+    )
+    # Granular verification level. Defaults to UNVERIFIED and is only ever
+    # raised by a human decision or an explicit, audited source match.
+    verification_level: Mapped[VerificationLevel] = mapped_column(
+        Enum(VerificationLevel), default=VerificationLevel.unverified
     )
     review_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_demo: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -505,3 +593,175 @@ class SupportTicket(Base, TimestampMixin):
     category: Mapped[str] = mapped_column(String(32), default="general")
     body: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(String(32), default="open")
+
+
+# ---------------------------------------------------------------------------
+# Identity & professional verification (P0)
+#
+# Nothing in this section is ever fabricated: a facility exists only because it
+# came from an imported source or an explicit (unverified) user request, and a
+# professional is only ever marked verified by a human decision.
+# ---------------------------------------------------------------------------
+
+
+class HealthcareFacility(Base, TimestampMixin):
+    """A health facility in the SunuDoctor referential.
+
+    ``source_type`` records where the record came from. A record created from a
+    user request is ``manual`` + ``pending_verification`` and is never presented
+    as official. ``official_verified``/``partner_verified`` are only reachable
+    through a controlled import or an audited human decision.
+    """
+
+    __tablename__ = "healthcare_facilities"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    name: Mapped[str] = mapped_column(String(255), index=True)
+    short_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    type: Mapped[FacilityType] = mapped_column(
+        Enum(FacilityType), default=FacilityType.other, index=True
+    )
+    region: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    district: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    commune: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    address: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    latitude: Mapped[float | None] = mapped_column(Float, nullable=True)
+    longitude: Mapped[float | None] = mapped_column(Float, nullable=True)
+    phone: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    # Identifier assigned by the source authority, when one exists.
+    official_id: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
+    source: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    source_type: Mapped[RegistrySourceType] = mapped_column(
+        Enum(RegistrySourceType), default=RegistrySourceType.manual
+    )
+    source_date: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    verified_date: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    valid_from: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    valid_until: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
+    status: Mapped[FacilityStatus] = mapped_column(
+        Enum(FacilityStatus), default=FacilityStatus.pending_verification, index=True
+    )
+    registry_import_id: Mapped[str | None] = mapped_column(
+        ForeignKey("registry_imports.id"), nullable=True
+    )
+    # True only for the synthetic demo facility; never for a real one.
+    is_demo: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
+class FacilityAdminGrant(Base, TimestampMixin):
+    """Explicit, revocable grant making a user an administrator of a facility.
+
+    Holding ``org_admin`` alone is not enough to confirm memberships: a grant
+    scoped to the exact facility is required.
+    """
+
+    __tablename__ = "facility_admin_grants"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    facility_id: Mapped[str] = mapped_column(ForeignKey("healthcare_facilities.id"), index=True)
+    granted_by: Mapped[str | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+
+class ProfessionalAffiliation(Base, TimestampMixin):
+    """A professional's affiliation to a facility, with full history.
+
+    Previous affiliations are never deleted: ending one sets ``ended_at`` and
+    ``status=ENDED`` so the trajectory stays auditable.
+    """
+
+    __tablename__ = "professional_affiliations"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    professional_id: Mapped[str] = mapped_column(ForeignKey("professionals.id"), index=True)
+    facility_id: Mapped[str] = mapped_column(ForeignKey("healthcare_facilities.id"), index=True)
+    role_function: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    status: Mapped[AffiliationStatus] = mapped_column(
+        Enum(AffiliationStatus), default=AffiliationStatus.requested, index=True
+    )
+    requested_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    decided_by: Mapped[str | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    decision_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    ended_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    is_demo: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
+class RegistryImport(Base):
+    """An immutable record of a referential import.
+
+    Stores provenance (source, checksum, counts, errors) so a new import never
+    silently overwrites the previous referential.
+    """
+
+    __tablename__ = "registry_imports"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    source: Mapped[str] = mapped_column(String(255))
+    source_type: Mapped[RegistrySourceType] = mapped_column(
+        Enum(RegistrySourceType), default=RegistrySourceType.official
+    )
+    version: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    checksum: Mapped[str] = mapped_column(String(64))
+    record_count: Mapped[int] = mapped_column(Integer, default=0)
+    error_count: Mapped[int] = mapped_column(Integer, default=0)
+    errors_json: Mapped[str] = mapped_column(Text, default="[]")
+    diff_json: Mapped[str] = mapped_column(Text, default="{}")
+    status: Mapped[RegistryImportStatus] = mapped_column(
+        Enum(RegistryImportStatus), default=RegistryImportStatus.received
+    )
+    imported_by: Mapped[str | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    imported_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    published_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+
+class ProfessionalDuplicateFlag(Base, TimestampMixin):
+    """A suspected duplicate account. Never merged or deleted automatically."""
+
+    __tablename__ = "professional_duplicate_flags"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    professional_id: Mapped[str] = mapped_column(ForeignKey("professionals.id"), index=True)
+    matched_professional_id: Mapped[str] = mapped_column(
+        ForeignKey("professionals.id"), index=True
+    )
+    reason: Mapped[str] = mapped_column(String(64))
+    detail: Mapped[str | None] = mapped_column(Text, nullable=True)
+    resolved: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
+class IdentityDocument(Base, TimestampMixin):
+    """A supporting document for identity verification.
+
+    Only a reference and a checksum are stored here; the binary is kept by the
+    operator's storage. Documents are never exposed publicly.
+    """
+
+    __tablename__ = "identity_documents"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    professional_id: Mapped[str] = mapped_column(ForeignKey("professionals.id"), index=True)
+    kind: Mapped[str] = mapped_column(String(64))
+    reference: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    checksum: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    uploaded_by: Mapped[str | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+
+
+class VerificationDecisionRecord(Base):
+    """An auditable record of a verification decision by an officer."""
+
+    __tablename__ = "verification_decisions"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    professional_id: Mapped[str] = mapped_column(ForeignKey("professionals.id"), index=True)
+    decision: Mapped[str] = mapped_column(String(32))  # APPROVE | REJECT | REQUEST_MORE_INFORMATION
+    from_level: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    to_level: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    source_consulted: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    match_result: Mapped[str | None] = mapped_column(Text, nullable=True)
+    decided_by: Mapped[str | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    decided_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)

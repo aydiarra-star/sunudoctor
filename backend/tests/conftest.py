@@ -41,6 +41,17 @@ def _register(client, email, role, **extra):
         "role": role,
         **extra,
     }
+    # Professional registration requires a facility reference. Tests use an
+    # explicitly unverified request so no facility is ever treated as official.
+    if role in {
+        "doctor",
+        "nurse",
+        "midwife",
+        "other_professional",
+        "community_agent",
+        "social_worker",
+    } and "facility_id" not in payload and "requested_facility_name" not in payload:
+        payload["requested_facility_name"] = "DEMO — Structure de test"
     r = client.post("/api/auth/register", json=payload)
     if r.status_code == 409:
         # Already registered by a previous test: log in instead.
@@ -51,25 +62,86 @@ def _register(client, email, role, **extra):
     return r.json()
 
 
+def promote_verified(email: str) -> None:
+    """Mark a test professional as verified.
+
+    Real verification is a human decision; tests that exercise clinical authoring
+    need a verified professional, so this simulates the outcome of that decision
+    directly in the database.
+    """
+    from app.core.database import SessionLocal
+    from app.models.entities import Professional, User, VerificationLevel
+
+    db = SessionLocal()
+    user = db.query(User).filter(User.email == email).first()
+    if user:
+        prof = db.query(Professional).filter(Professional.user_id == user.id).first()
+        if prof:
+            prof.verification_level = VerificationLevel.verified
+            db.commit()
+    db.close()
+
+
 def _auth(token):
     return {"Authorization": f"Bearer {token}"}
 
 
 @pytest.fixture()
+def facility(client):
+    """A synthetic, clearly-labelled DEMO facility in the referential."""
+    from app.core.database import SessionLocal
+    from app.models.entities import (
+        FacilityStatus,
+        FacilityType,
+        HealthcareFacility,
+        RegistrySourceType,
+    )
+
+    db = SessionLocal()
+    existing = (
+        db.query(HealthcareFacility)
+        .filter(HealthcareFacility.name == "DEMO — Centre de Santé Exemple")
+        .first()
+    )
+    if existing is None:
+        existing = HealthcareFacility(
+            name="DEMO — Centre de Santé Exemple",
+            short_name="DEMO Centre Exemple",
+            type=FacilityType.health_center,
+            region="Dakar",
+            district="Dakar Plateau",
+            commune="Plateau",
+            source="Jeu de démonstration SunuDoctor",
+            source_type=RegistrySourceType.manual,
+            status=FacilityStatus.pending_verification,
+            is_demo=True,
+        )
+        db.add(existing)
+        db.commit()
+        db.refresh(existing)
+    data = {"id": existing.id, "name": existing.name}
+    db.close()
+    return data
+
+
+@pytest.fixture()
 def doctor(client):
     data = _register(client, "doctor@test.sn", "doctor", profession="medecin")
+    promote_verified("doctor@test.sn")
     return data, _auth(data["access_token"])
 
 
 @pytest.fixture()
 def doctor2(client):
     data = _register(client, "doctor2@test.sn", "doctor", profession="medecin")
+    promote_verified("doctor2@test.sn")
     return data, _auth(data["access_token"])
 
 
 @pytest.fixture()
 def nurse(client):
     data = _register(client, "nurse@test.sn", "nurse", profession="infirmier")
+    promote_verified("nurse@test.sn")
     return data, _auth(data["access_token"])
 
 

@@ -20,6 +20,11 @@ export interface RegisterPayload {
   profession?: string;
   specialty?: string;
   license_number?: string;
+  region?: string;
+  district?: string;
+  facility_id?: string;
+  requested_facility_name?: string;
+  role_function?: string;
 }
 
 const AuthContext = createContext<AuthState | null>(null);

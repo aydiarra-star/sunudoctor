@@ -13,7 +13,11 @@ import json
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_client_meta, get_current_user
+from app.api.deps import (
+    get_client_meta,
+    get_current_user,
+    require_verified_professional,
+)
 from app.core.database import get_db
 from app.core.rbac import can_access_patient
 from app.models.entities import (
@@ -66,7 +70,7 @@ def _consultation_for(db: Session, user: User, consultation_id: str) -> Consulta
 @router.post("/consultations", response_model=ConsultationOut, status_code=201)
 def create_consultation(
     payload: ConsultationCreate,
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_verified_professional),
     db: Session = Depends(get_db),
     meta: dict = Depends(get_client_meta),
 ):
@@ -109,7 +113,7 @@ def get_consultation(
 @router.post("/transcribe")
 def transcribe(
     payload: TranscribeRequest,
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_verified_professional),
     db: Session = Depends(get_db),
     meta: dict = Depends(get_client_meta),
 ):
@@ -207,7 +211,7 @@ def transcribe(
 @router.post("/structure")
 def structure(
     payload: StructureRequest,
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_verified_professional),
     db: Session = Depends(get_db),
     meta: dict = Depends(get_client_meta),
 ):
@@ -288,7 +292,7 @@ def structure(
 def validate_consultation(
     consultation_id: str,
     payload: ValidateRequest,
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_verified_professional),
     db: Session = Depends(get_db),
     meta: dict = Depends(get_client_meta),
 ):

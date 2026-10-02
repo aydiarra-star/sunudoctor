@@ -27,6 +27,7 @@ def test_register_login_and_me(client):
             "full_name": "A B",
             "role": "nurse",
             "profession": "infirmier",
+            "requested_facility_name": "DEMO — Structure de test",
         },
     )
     assert r.status_code == 201
@@ -36,6 +37,24 @@ def test_register_login_and_me(client):
     assert me.json()["role"] == "nurse"
     # New professional is NOT auto-verified.
     assert me.json()["professional"]["verification_status"] == "pending"
+    assert me.json()["professional"]["verification_level"] == "UNVERIFIED"
+    assert me.json()["professional"]["access_tier"] == "LIMITED"
+
+
+def test_professional_registration_requires_facility(client):
+    """A professional account cannot be created without a facility reference."""
+    r = client.post(
+        "/api/auth/register",
+        json={
+            "email": "nofacility@test.sn",
+            "password": "StrongPass123!",
+            "full_name": "No Facility",
+            "role": "doctor",
+            "profession": "medecin",
+        },
+    )
+    assert r.status_code == 400
+    assert "structure" in r.json()["detail"].lower()
 
 
 def test_duplicate_email_rejected(client, doctor):
