@@ -85,6 +85,41 @@ class StructuredNote:
         }
 
 
+@dataclass
+class LanguageDetection:
+    """Detected language mix for a transcript.
+
+    ``languages`` lists every language observed (code-switching friendly), and
+    ``primary`` is the dominant one. Detection never rewrites the transcript.
+    """
+
+    primary: str = "wolof"
+    languages: list[str] = field(default_factory=list)
+    mixed: bool = False
+    confidence: float = 0.0
+    is_demo: bool = True
+
+
+@dataclass
+class ValidationIssue:
+    field: str
+    code: str
+    message: str
+
+
+@dataclass
+class ValidationResult:
+    """Result of an automated review of a draft note.
+
+    This provider never adds or corrects clinical content: it only flags issues
+    for the human professional to resolve.
+    """
+
+    ok: bool = True
+    issues: list[ValidationIssue] = field(default_factory=list)
+    is_demo: bool = True
+
+
 class SpeechToTextProvider(ABC):
     name: str = "abstract"
 
@@ -93,6 +128,14 @@ class SpeechToTextProvider(ABC):
         self, audio: bytes | None, *, language_hint: str = "wolof", text_hint: str | None = None
     ) -> TranscriptionResult:
         """Convert audio to text. Must never invent content not present in input."""
+
+
+class LanguageDetectionProvider(ABC):
+    name: str = "abstract"
+
+    @abstractmethod
+    def detect(self, text: str) -> LanguageDetection:
+        """Detect the language mix (Wolof / Français). Never rewrites the text."""
 
 
 class ClinicalAIProvider(ABC):
@@ -117,3 +160,11 @@ class SafetyProvider(ABC):
     @abstractmethod
     def review(self, note: StructuredNote, transcription: str) -> tuple[StructuredNote, list[str]]:
         """Return (sanitised_note, flags). Must never add clinical content."""
+
+
+class AIValidationProvider(ABC):
+    name: str = "abstract"
+
+    @abstractmethod
+    def validate(self, note: StructuredNote, transcription: str) -> ValidationResult:
+        """Review a draft note for completeness/consistency. Never adds content."""

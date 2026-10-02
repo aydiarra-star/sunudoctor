@@ -10,13 +10,17 @@ from __future__ import annotations
 from app.core.config import settings
 from app.services.ai import safety as safety_engine
 from app.services.ai.base import (
+    AIValidationProvider,
     ClinicalAIProvider,
+    LanguageDetectionProvider,
     SafetyProvider,
     SpeechToTextProvider,
     TranslationProvider,
 )
 from app.services.ai.demo_providers import (
+    DemoAIValidation,
     DemoClinicalAI,
+    DemoLanguageDetection,
     DemoSpeechToText,
     DemoTranslation,
 )
@@ -48,6 +52,16 @@ def get_translation_provider() -> tuple[TranslationProvider, bool]:
     if settings.translation_provider == "demo":
         return DemoTranslation(), True
     return DemoTranslation(), True
+
+
+def get_language_detection_provider() -> tuple[LanguageDetectionProvider, bool]:
+    """Heuristic detection. A real provider could be swapped in without code change."""
+    return DemoLanguageDetection(), True
+
+
+def get_ai_validation_provider() -> tuple[AIValidationProvider, bool]:
+    """Deterministic draft review. Never adds or corrects clinical content."""
+    return DemoAIValidation(), True
 
 
 def get_safety_provider() -> SafetyProvider:

@@ -6,15 +6,18 @@ import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
 import { Dashboard } from "./pages/Dashboard";
 import { Patients } from "./pages/Patients";
+import { PatientDetail } from "./pages/PatientDetail";
 import { Scribe } from "./pages/Scribe";
 import { Status } from "./pages/Status";
 import { Billing } from "./pages/Billing";
+import { ListSkeleton } from "./components/ui";
 import {
   Appointments,
   Consents,
   Coordination,
   Documents,
   Messages,
+  Notifications,
   Profile,
   Settings,
   Teleconsultation,
@@ -35,8 +38,8 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center text-muted" role="status">
-        Chargement…
+      <div className="mx-auto max-w-4xl px-4 py-10">
+        <ListSkeleton rows={3} />
       </div>
     );
   }
@@ -48,7 +51,7 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 function ComingSoon({ title }: { title: string }) {
   return (
     <div>
-      <h1 className="text-2xl font-bold text-ink">{title}</h1>
+      <h1 className="text-2xl font-bold tracking-tight text-ink">{title}</h1>
       <div className="card mt-4">
         <p className="font-semibold text-ink">Fonctionnalité en préparation</p>
         <p className="mt-1 text-sm text-muted">
@@ -83,6 +86,7 @@ export function AppRoutes() {
       >
         <Route index element={<Dashboard />} />
         <Route path="patients" element={<Patients />} />
+        <Route path="patients/:patientId" element={<PatientDetail />} />
         <Route path="patients/:patientId/consents" element={<ConsentsRoute />} />
         <Route path="consultations" element={<ComingSoon title="Consultations" />} />
         <Route path="scribe" element={<Scribe />} />
@@ -92,6 +96,7 @@ export function AppRoutes() {
         <Route path="coordination" element={<Coordination />} />
         <Route path="appointments" element={<Appointments />} />
         <Route path="consents" element={<Consents />} />
+        <Route path="notifications" element={<Notifications />} />
         <Route path="profile" element={<Profile />} />
         <Route path="settings" element={<Settings />} />
         <Route path="billing" element={<Billing />} />

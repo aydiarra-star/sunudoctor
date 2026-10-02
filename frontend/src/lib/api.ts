@@ -112,6 +112,26 @@ export interface StructuredField {
   source_span: string | null;
 }
 
+export interface LanguageDetection {
+  primary: string;
+  languages: string[];
+  mixed: boolean;
+  confidence: number;
+  is_demo: boolean;
+}
+
+export interface ValidationIssue {
+  field: string;
+  code: string;
+  message: string;
+}
+
+export interface DraftValidation {
+  ok: boolean;
+  is_demo: boolean;
+  issues: ValidationIssue[];
+}
+
 export interface StructuredNote {
   chief_complaint: StructuredField;
   history: StructuredField;

@@ -16,12 +16,17 @@ import re
 
 from app.services.ai import safety
 from app.services.ai.base import (
+    AIValidationProvider,
     ClinicalAIProvider,
+    LanguageDetection,
+    LanguageDetectionProvider,
     SpeechToTextProvider,
     StructuredField,
     StructuredNote,
     TranscriptionResult,
     TranslationProvider,
+    ValidationIssue,
+    ValidationResult,
 )
 
 # Symptom lexicon (French + Wolof). Used only to locate spans in the source.
@@ -162,3 +167,81 @@ class DemoTranslation(TranslationProvider):
             else:
                 out.append(w)
         return "".join(out), True
+
+
+# Wolof marker words used for heuristic detection only.
+WOLOF_MARKERS = [
+    "bi", "dafa", "am", "ci", "te", "du", "nag", "baax", "jërëjëf", "sama",
+    "xamuma", "amul", "metit", "tàngaay", "bopp", "biir", "sëq", "fan",
+    "bëgg", "dëkk", "wér", "ñaam", "ndox", "jàngoro", "doktoor",
+]
+FRENCH_MARKERS = [
+    "le", "la", "les", "de", "des", "du", "et", "depuis", "avec", "sans",
+    "patient", "douleur", "fièvre", "jours", "médecin", "traitement", "examen",
+]
+
+
+class DemoLanguageDetection(LanguageDetectionProvider):
+    """Heuristic, deterministic language detection. Illustrative only."""
+
+    name = "demo-language-detection"
+
+    def detect(self, text: str) -> LanguageDetection:
+        low = f" {safety.normalize(text)} "
+        tokens = set(re.findall(r"[a-zà-ÿ']+", low))
+        wo = sum(1 for m in WOLOF_MARKERS if f" {m} " in low or m in tokens)
+        fr = sum(1 for m in FRENCH_MARKERS if f" {m} " in low or m in tokens)
+        languages: list[str] = []
+        if wo:
+            languages.append("wolof")
+        if fr:
+            languages.append("français")
+        if not languages:
+            languages = ["wolof"]
+        primary = "wolof" if wo >= fr else "français"
+        total = max(wo + fr, 1)
+        return LanguageDetection(
+            primary=primary,
+            languages=languages,
+            mixed=bool(wo and fr),
+            confidence=round(max(wo, fr) / total, 2),
+            is_demo=True,
+        )
+
+
+class DemoAIValidation(AIValidationProvider):
+    """Deterministic consistency review of a draft note.
+
+    It never edits or completes the note. It only reports what a human should
+    look at before validating.
+    """
+
+    name = "demo-ai-validation"
+
+    def validate(self, note: StructuredNote, transcription: str) -> ValidationResult:
+        issues: list[ValidationIssue] = []
+        if not note.chief_complaint.value:
+            issues.append(
+                ValidationIssue(
+                    field="chief_complaint",
+                    code="missing",
+                    message="Motif non documenté dans la transcription.",
+                )
+            )
+        if note.uncertainties:
+            issues.append(
+                ValidationIssue(
+                    field="uncertainties",
+                    code="uncertain",
+                    message="Des passages incertains nécessitent une vérification humaine.",
+                )
+            )
+        if not note.diagnosis.value:
+            issues.append(
+                ValidationIssue(
+                    field="diagnosis",
+                    code="human_required",
+                    message="Diagnostic à renseigner par le professionnel (jamais déduit par l'IA).",
+                )
+            )
+        return ValidationResult(ok=not any(i.code == "missing" for i in issues), issues=issues, is_demo=True)

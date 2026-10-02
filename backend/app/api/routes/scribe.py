@@ -34,7 +34,9 @@ from app.schemas import (
 )
 from app.services import audit
 from app.services.ai.factory import (
+    get_ai_validation_provider,
     get_clinical_ai_provider,
+    get_language_detection_provider,
     get_safety_provider,
     get_stt_provider,
 )
@@ -129,10 +131,14 @@ def transcribe(
         audio, language_hint=payload.language_hint, text_hint=payload.text_hint
     )
 
+    # Detect the actual language mix without ever rewriting the transcript.
+    detector, detection_is_demo = get_language_detection_provider()
+    detection = detector.detect(result.raw_text) if result.raw_text else None
+
     transcription = AITranscription(
         consultation_id=cons.id,
         raw_text=result.raw_text,
-        language=result.language,
+        language=(detection.primary if detection else result.language),
         provider=result.provider,
         is_demo=is_demo,
         consent_audio=payload.consent_audio,
@@ -157,12 +163,23 @@ def transcribe(
     return {
         "transcription_id": transcription.id,
         "raw_text": result.raw_text,
-        "language": result.language,
+        "language": transcription.language,
         "provider": result.provider,
         "is_demo": is_demo,
         "demo_banner": "Mode démonstration" if is_demo else None,
         "uncertain_spans": result.uncertain_spans,
         "audio_retained": transcription.audio_ref is not None,
+        "detection": (
+            {
+                "primary": detection.primary,
+                "languages": detection.languages,
+                "mixed": detection.mixed,
+                "confidence": detection.confidence,
+                "is_demo": detection_is_demo,
+            }
+            if detection
+            else None
+        ),
     }
 
 
@@ -186,6 +203,10 @@ def structure(
 
     safety_provider = get_safety_provider()
     note, flags = safety_provider.review(note, transcription.raw_text)
+
+    # Automated draft review — reports issues only, never edits the note.
+    validator, validation_is_demo = get_ai_validation_provider()
+    validation = validator.validate(note, transcription.raw_text)
 
     structured = AIStructuredNote(
         consultation_id=cons.id,
@@ -223,6 +244,13 @@ def structure(
         "structured": note.to_dict(),
         "safety_flags": flags,
         "uncertainties": note.uncertainties,
+        "validation": {
+            "ok": validation.ok,
+            "is_demo": validation_is_demo,
+            "issues": [
+                {"field": i.field, "code": i.code, "message": i.message} for i in validation.issues
+            ],
+        },
     }
 
 

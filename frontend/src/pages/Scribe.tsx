@@ -1,6 +1,24 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api, type Consultation, type Patient, type StructuredNote } from "../lib/api";
-import { EmptyState, ErrorState, PageHeader, Spinner } from "../components/ui";
+import type { LanguageDetection, DraftValidation } from "../lib/api";
+import {
+  EmptyState,
+  ErrorState,
+  ListSkeleton,
+  PageHeader,
+  useToast,
+} from "../components/ui";
+import {
+  IconScribe,
+  IconMic,
+  IconStop,
+  IconCheck,
+  IconWarning,
+  IconLanguage,
+  IconCheckCircle,
+  IconAI,
+  IconInfo,
+} from "../components/icons";
 
 type Step = "idle" | "recording" | "transcribed" | "structured" | "validated";
 
@@ -13,6 +31,7 @@ interface TranscribeResponse {
   demo_banner: string | null;
   uncertain_spans: string[];
   audio_retained: boolean;
+  detection: LanguageDetection | null;
 }
 
 interface StructureResponse {
@@ -24,9 +43,81 @@ interface StructureResponse {
   structured: StructuredNote;
   safety_flags: string[];
   uncertainties: string[];
+  validation: DraftValidation;
 }
 
 const EXAMPLE = "Patient bi dafa am douleur ci ventre bi depuis trois days, te fièvre du.";
+
+const PIPELINE: Array<{ key: Step; label: string }> = [
+  { key: "recording", label: "Parler" },
+  { key: "transcribed", label: "Transcrire" },
+  { key: "structured", label: "Structurer" },
+  { key: "structured", label: "Vérifier" },
+  { key: "validated", label: "Valider" },
+];
+
+/** Visual progression: Parler → Transcrire → Structurer → Vérifier → Valider. */
+function Pipeline({ step }: { step: Step }) {
+  const order: Step[] = ["idle", "recording", "transcribed", "structured", "validated"];
+  const current = order.indexOf(step);
+  // The "Vérifier" step shares the structured stage; show it as reached once structured.
+  const reached = (i: number) => {
+    if (step === "idle") return false;
+    if (i === 4) return step === "validated";
+    if (i === 3) return step === "structured" || step === "validated";
+    return current >= i;
+  };
+  return (
+    <ol className="mb-6 flex items-center gap-1 overflow-x-auto" aria-label="Étapes du Scribe">
+      {PIPELINE.map((p, i) => (
+        <li key={p.label} className="flex flex-1 items-center gap-1">
+          <div className="flex flex-1 flex-col items-center gap-1.5">
+            <span
+              className={`flex h-9 w-9 items-center justify-center rounded-full border-2 text-sm font-bold transition-colors ${
+                reached(i)
+                  ? "border-primary bg-primary text-white"
+                  : "border-slate-200 bg-white text-slate-400"
+              }`}
+              aria-current={reached(i) && !reached(i + 1) ? "step" : undefined}
+            >
+              {reached(i) && step !== "recording" && i < current ? (
+                <IconCheck className="h-4 w-4" aria-hidden="true" />
+              ) : (
+                i + 1
+              )}
+            </span>
+            <span
+              className={`text-xs font-medium ${reached(i) ? "text-primary-800" : "text-muted"}`}
+            >
+              {p.label}
+            </span>
+          </div>
+          {i < PIPELINE.length - 1 && (
+            <span
+              className={`mb-5 h-0.5 flex-1 rounded ${reached(i + 1) ? "bg-primary" : "bg-slate-200"}`}
+              aria-hidden="true"
+            />
+          )}
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+function Waveform() {
+  const bars = [0.45, 0.85, 0.4, 1, 0.6, 0.9, 0.35, 0.75, 0.5, 0.95, 0.45, 0.7, 0.55, 0.8];
+  return (
+    <div className="flex h-10 items-end justify-center gap-0.5" aria-hidden="true">
+      {bars.map((h, i) => (
+        <span
+          key={i}
+          className="w-1.5 animate-wave rounded-full bg-accent"
+          style={{ height: `${h * 100}%`, animationDelay: `${i * 60}ms` }}
+        />
+      ))}
+    </div>
+  );
+}
 
 export function Scribe() {
   const [patients, setPatients] = useState<Patient[] | null>(null);
@@ -40,6 +131,9 @@ export function Scribe() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [decision, setDecision] = useState("");
+  const [elapsed, setElapsed] = useState(0);
+  const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const toast = useToast();
 
   useEffect(() => {
     api
@@ -48,13 +142,24 @@ export function Scribe() {
       .catch((e) => setError(e instanceof Error ? e.message : "Erreur"));
   }, []);
 
+  useEffect(() => {
+    if (step === "recording") {
+      setElapsed(0);
+      timer.current = setInterval(() => setElapsed((s) => s + 1), 1000);
+    } else if (timer.current) {
+      clearInterval(timer.current);
+      timer.current = null;
+    }
+    return () => {
+      if (timer.current) clearInterval(timer.current);
+    };
+  }, [step]);
+
   async function startConsultation() {
     setError(null);
     setBusy(true);
     try {
-      const cons = await api.post<Consultation>("/scribe/consultations", {
-        patient_id: patientId,
-      });
+      const cons = await api.post<Consultation>("/scribe/consultations", { patient_id: patientId });
       setConsultation(cons);
       setStep("recording");
     } catch (e) {
@@ -111,6 +216,7 @@ export function Scribe() {
         change_note: "Validation par le professionnel",
       });
       setStep("validated");
+      toast.push({ title: "Consultation validée", body: "La note est historisée.", tone: "success" });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Validation impossible");
     } finally {
@@ -118,45 +224,27 @@ export function Scribe() {
     }
   }
 
-  const steps: Array<{ key: Step; label: string }> = [
-    { key: "recording", label: "Enregistrement" },
-    { key: "transcribed", label: "Transcription" },
-    { key: "structured", label: "Structuration" },
-    { key: "validated", label: "Validation" },
-  ];
-  const stepIndex = steps.findIndex((s) => s.key === step);
+  const mmss = `${String(Math.floor(elapsed / 60)).padStart(2, "0")}:${String(elapsed % 60).padStart(2, "0")}`;
 
   return (
     <div>
       <PageHeader
         title="Scribe clinique"
         subtitle="Parler → Transcrire → Structurer → Vérifier → Valider"
+        icon={<IconScribe className="h-5 w-5" aria-hidden="true" />}
       />
+
+      <Pipeline step={step} />
 
       {error && <ErrorState message={error} />}
 
-      <ol className="mb-5 flex flex-wrap gap-2" aria-label="Étapes">
-        {steps.map((s, i) => (
-          <li
-            key={s.key}
-            className={`rounded-full px-3 py-1 text-xs font-semibold ${
-              i <= stepIndex && step !== "idle"
-                ? "bg-primary text-white"
-                : "bg-slate-200 text-slate-600"
-            }`}
-            aria-current={s.key === step ? "step" : undefined}
-          >
-            {i + 1}. {s.label}
-          </li>
-        ))}
-      </ol>
-
-      {/* Step 1: choose patient + start */}
+      {/* Step 1 — choose patient */}
       {step === "idle" && (
         <div className="card">
-          {patients === null && <Spinner />}
+          {patients === null && <ListSkeleton rows={2} />}
           {patients?.length === 0 && (
             <EmptyState
+              icon={<IconScribe className="h-6 w-6" aria-hidden="true" />}
               title="Aucun patient autorisé"
               hint="Créez d'abord un dossier patient dans la section Patients."
             />
@@ -184,6 +272,7 @@ export function Scribe() {
                 disabled={!patientId || busy}
                 onClick={startConsultation}
               >
+                <IconMic className="h-4 w-4" aria-hidden="true" />
                 Démarrer le Scribe
               </button>
             </>
@@ -191,70 +280,104 @@ export function Scribe() {
         </div>
       )}
 
-      {/* Step 2: recording / transcription input */}
+      {/* Step 2 — recording / transcription */}
       {step === "recording" && (
         <div className="card">
-          <div className="flex flex-col items-center gap-3 py-4">
-            <span
-              className="flex h-20 w-20 items-center justify-center rounded-full bg-primary text-3xl text-white"
-              aria-hidden="true"
-            >
-              🎙
+          <div className="flex flex-col items-center gap-4 py-4">
+            <span className="relative flex h-24 w-24 items-center justify-center rounded-full bg-primary text-white">
+              <IconMic className="h-10 w-10" aria-hidden="true" />
+              <span className="absolute inset-0 animate-pulse-ring rounded-full bg-primary/40" />
             </span>
-            <p className="font-semibold text-ink">Enregistrement</p>
+            <div className="text-center">
+              <p className="font-semibold text-ink">Enregistrement en cours</p>
+              <p className="mt-0.5 font-mono text-2xl font-bold text-primary">{mmss}</p>
+            </div>
+            <Waveform />
+            <span className="badge-warn">
+              <IconWarning className="h-3 w-3" aria-hidden="true" />
+              Mode démonstration
+            </span>
             <p className="max-w-md text-center text-sm text-muted">
-              Aucun moteur de reconnaissance vocale réel n'est configuré (mode démonstration). Saisissez
-              la transcription ci-dessous pour exercer la chaîne complète.
+              Aucun moteur de reconnaissance vocale réel n'est configuré. Saisissez la
+              transcription ci-dessous pour exercer la chaîne complète. L'audio n'est jamais
+              simulé.
             </p>
           </div>
 
-          <label className="label" htmlFor="hint">
-            Transcription (mode démonstration)
-          </label>
-          <textarea
-            id="hint"
-            className="input min-h-24"
-            placeholder={EXAMPLE}
-            value={textHint}
-            onChange={(e) => setTextHint(e.target.value)}
-          />
-          <button
-            type="button"
-            className="btn-ghost mt-2 text-xs"
-            onClick={() => setTextHint(EXAMPLE)}
-          >
-            Utiliser l'exemple Wolof/Français
-          </button>
-
-          <label className="mt-4 flex items-center gap-2 text-sm text-ink">
-            <input
-              type="checkbox"
-              checked={consentAudio}
-              onChange={(e) => setConsentAudio(e.target.checked)}
+          <div className="mt-2 border-t border-slate-100 pt-4">
+            <div className="mb-2 flex items-center justify-between">
+              <label className="label mb-0" htmlFor="hint">
+                Transcription (mode démonstration)
+              </label>
+              <span className="badge-info">
+                <IconLanguage className="h-3 w-3" aria-hidden="true" />
+                Wolof + Français
+              </span>
+            </div>
+            <textarea
+              id="hint"
+              className="input min-h-24"
+              placeholder={EXAMPLE}
+              value={textHint}
+              onChange={(e) => setTextHint(e.target.value)}
             />
-            Consentement pour la conservation de l'audio original
-          </label>
+            <button
+              type="button"
+              className="btn-ghost mt-2 text-xs"
+              onClick={() => setTextHint(EXAMPLE)}
+            >
+              Utiliser l'exemple Wolof/Français
+            </button>
 
-          <button
-            className="btn-primary mt-4"
-            disabled={busy || textHint.trim().length === 0}
-            onClick={transcribe}
-          >
-            {busy ? "Transcription…" : "Transcrire"}
-          </button>
+            <label className="mt-4 flex items-center gap-2 text-sm text-ink">
+              <input
+                type="checkbox"
+                checked={consentAudio}
+                onChange={(e) => setConsentAudio(e.target.checked)}
+              />
+              Consentement pour la conservation de l'audio original
+            </label>
+
+            <button
+              className="btn-primary mt-4"
+              disabled={busy || textHint.trim().length === 0}
+              onClick={transcribe}
+            >
+              {busy ? (
+                "Transcription…"
+              ) : (
+                <>
+                  <IconStop className="h-4 w-4" aria-hidden="true" />
+                  Arrêter et transcrire
+                </>
+              )}
+            </button>
+          </div>
         </div>
       )}
 
-      {/* Transcript */}
+      {/* Transcript — original preserved for comparison */}
       {transcript && step !== "recording" && (
         <div className="card mt-4">
-          <h2 className="font-semibold text-ink">Transcription brute</h2>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-semibold text-ink">Transcript original</h2>
+            <span className="badge-info">
+              <IconLanguage className="h-3 w-3" aria-hidden="true" />
+              Langue détectée :{" "}
+              {transcript.detection?.mixed
+                ? "Wolof + Français"
+                : transcript.detection?.primary === "français"
+                  ? "Français"
+                  : "Wolof"}
+            </span>
+          </div>
           {transcript.is_demo && (
-            <p className="mt-1 text-xs text-amber-700">
+            <p className="mt-1.5 flex items-center gap-1.5 text-xs text-amber-700">
+              <IconInfo className="h-3.5 w-3.5" aria-hidden="true" />
               Mode démonstration — transcription saisie, non issue d'un moteur vocal.
             </p>
           )}
-          <p className="mt-2 whitespace-pre-wrap rounded-lg bg-slate-50 p-3 text-sm text-ink">
+          <p className="mt-2 whitespace-pre-wrap rounded-xl bg-surface p-3 text-sm text-ink">
             {transcript.raw_text || "Non documenté"}
           </p>
           <p className="mt-2 text-xs text-muted">
@@ -262,33 +385,71 @@ export function Scribe() {
           </p>
           {step === "transcribed" && (
             <button className="btn-primary mt-4" disabled={busy} onClick={structure}>
-              {busy ? "Structuration…" : "Structurer la note"}
+              {busy ? (
+                "Structuration…"
+              ) : (
+                <>
+                  <IconAI className="h-4 w-4" aria-hidden="true" />
+                  Structurer la note
+                </>
+              )}
             </button>
           )}
         </div>
       )}
 
-      {/* Structured note */}
+      {/* Structured note — always a draft */}
       {note && (
         <div className="card mt-4 border-amber-300">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="font-semibold text-ink">Note structurée</h2>
+            <h2 className="font-semibold text-ink">Synthèse structurée</h2>
             <span className="badge-warn">BROUILLON IA</span>
           </div>
-          <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          <p className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900">
             {note.disclaimer}
           </p>
 
           <NoteView note={note.structured} />
 
           {note.safety_flags.length > 0 && (
-            <div className="mt-4 rounded-lg border border-orange-200 bg-orange-50 p-3">
-              <p className="text-sm font-semibold text-orange-900">⚠ Passage incertain — à vérifier</p>
+            <div className="mt-4 rounded-xl border border-orange-200 bg-orange-50 p-3">
+              <p className="flex items-center gap-1.5 text-sm font-semibold text-orange-900">
+                <IconWarning className="h-4 w-4" aria-hidden="true" />
+                Passage incertain — à vérifier
+              </p>
               <ul className="mt-1 list-disc pl-5 text-xs text-orange-800">
                 {note.safety_flags.map((f, i) => (
                   <li key={i}>{f}</li>
                 ))}
               </ul>
+            </div>
+          )}
+
+          {note.validation && (
+            <div className="mt-4 rounded-xl border border-slate-200 bg-surface p-3">
+              <p className="flex items-center gap-1.5 text-sm font-semibold text-ink">
+                <IconCheckCircle className="h-4 w-4 text-primary" aria-hidden="true" />
+                Vérification automatique du brouillon
+              </p>
+              {note.validation.issues.length === 0 ? (
+                <p className="mt-1 text-xs text-muted">
+                  Aucun point bloquant détecté. La validation reste humaine.
+                </p>
+              ) : (
+                <ul className="mt-1.5 space-y-1">
+                  {note.validation.issues.map((iss, i) => (
+                    <li key={i} className="flex items-start gap-2 text-xs text-muted">
+                      <span className="badge-muted shrink-0">
+                        {iss.code === "human_required" ? "À renseigner" : "À vérifier"}
+                      </span>
+                      {iss.message}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <p className="mt-2 text-[11px] text-muted">
+                La vérification n'ajoute ni ne corrige aucune donnée clinique.
+              </p>
             </div>
           )}
 
@@ -306,6 +467,7 @@ export function Scribe() {
               />
               <div className="mt-3 flex flex-wrap gap-2">
                 <button className="btn-primary" disabled={busy} onClick={validate}>
+                  <IconCheckCircle className="h-4 w-4" aria-hidden="true" />
                   {busy ? "Validation…" : "Confirmer et valider"}
                 </button>
                 <button className="btn-secondary" onClick={() => setNote(null)}>
@@ -322,17 +484,32 @@ export function Scribe() {
 
       {step === "validated" && (
         <div className="card mt-4 border-emerald-300 bg-emerald-50" role="status">
-          <p className="font-semibold text-emerald-800">Consultation validée</p>
-          <p className="mt-1 text-sm text-emerald-700">
-            La note est validée et historisée. Seul un professionnel peut valider une note.
-          </p>
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 animate-check-pop items-center justify-center rounded-full bg-emerald-600 text-white">
+              <IconCheck className="h-5 w-5" aria-hidden="true" />
+            </span>
+            <div>
+              <p className="font-semibold text-emerald-800">Consultation validée</p>
+              <p className="mt-0.5 text-sm text-emerald-700">
+                La note est validée et historisée. Seul un professionnel peut valider une note.
+              </p>
+            </div>
+          </div>
         </div>
       )}
     </div>
   );
 }
 
-function Field({ label, value, uncertain }: { label: string; value: string | null; uncertain: boolean }) {
+function Field({
+  label,
+  value,
+  uncertain,
+}: {
+  label: string;
+  value: string | null;
+  uncertain: boolean;
+}) {
   return (
     <div>
       <dt className="text-xs font-semibold uppercase tracking-wide text-muted">{label}</dt>
@@ -414,7 +591,11 @@ function NoteView({ note }: { note: StructuredNote }) {
       <Field label="Diagnostic / hypothèse" value={note.diagnosis.value} uncertain={note.diagnosis.uncertain} />
       <Field label="Décision" value={note.decision.value} uncertain={note.decision.uncertain} />
       <Field label="Prescription" value={note.prescription.value} uncertain={note.prescription.uncertain} />
-      <Field label="Recommandations" value={note.recommendations.value} uncertain={note.recommendations.uncertain} />
+      <Field
+        label="Recommandations"
+        value={note.recommendations.value}
+        uncertain={note.recommendations.uncertain}
+      />
       <Field label="Suivi" value={note.follow_up.value} uncertain={note.follow_up.uncertain} />
     </dl>
   );

@@ -41,13 +41,13 @@
 
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-150 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100;
   }
   .btn-primary {
-    @apply btn bg-primary text-white hover:bg-primary-dark;
+    @apply btn bg-primary text-white shadow-soft hover:bg-primary-600 hover:shadow-card;
   }
   .btn-secondary {
-    @apply btn border border-primary/30 bg-white text-primary hover:bg-primary-light;
+    @apply btn border border-primary/25 bg-white text-primary hover:border-primary/40 hover:bg-primary-50;
   }
   .btn-ghost {
     @apply btn text-muted hover:bg-slate-100 hover:text-ink;
@@ -56,10 +56,13 @@
     @apply btn bg-red-600 text-white hover:bg-red-700;
   }
   .card {
-    @apply rounded-2xl border border-slate-200 bg-white p-5 shadow-sm;
+    @apply rounded-2xl border border-slate-200/80 bg-white p-5 shadow-soft;
+  }
+  .card-hover {
+    @apply transition-all duration-200 hover:-translate-y-0.5 hover:border-primary-200 hover:shadow-card;
   }
   .input {
-    @apply w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm text-ink placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30;
+    @apply w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-ink placeholder:text-muted/70 transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25;
   }
   .label {
     @apply mb-1.5 block text-sm font-medium text-ink;
@@ -71,7 +74,7 @@
     @apply badge bg-amber-100 text-amber-800;
   }
   .badge-info {
-    @apply badge bg-primary-light text-primary-dark;
+    @apply badge bg-primary-100 text-primary-800;
   }
   .badge-warn {
     @apply badge bg-orange-100 text-orange-800;
@@ -82,4 +85,52 @@
   .badge-muted {
     @apply badge bg-slate-100 text-slate-600;
   }
+  /* Status taxonomy badges — colour is never the only signal (icon + label). */
+  .badge-real {
+    @apply badge border border-emerald-200 bg-emerald-50 text-emerald-800;
+  }
+  .badge-partial {
+    @apply badge border border-sky-200 bg-sky-50 text-sky-800;
+  }
+  .badge-unconnected {
+    @apply badge border border-slate-300 bg-slate-50 text-slate-600;
+  }
+  .badge-validate {
+    @apply badge border border-violet-200 bg-violet-50 text-violet-800;
+  }
+  .nav-item {
+    @apply flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-primary-50 hover:text-primary-800;
+  }
+  .nav-item-active {
+    @apply bg-primary-100 text-primary-800;
+  }
+  .skeleton {
+    @apply relative overflow-hidden rounded-lg bg-slate-200/70;
+  }
+  .skeleton::after {
+    content: "";
+    @apply absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/60 to-transparent;
+  }
+  .section-title {
+    @apply text-sm font-semibold uppercase tracking-wide text-muted;
+  }
+  .stat-value {
+    @apply text-2xl font-bold text-ink;
+  }
 }
+
+@layer utilities {
+  .bg-hero {
+    background:
+      radial-gradient(1100px 520px at 88% -12%, rgba(18, 184, 232, 0.16), transparent 62%),
+      radial-gradient(760px 420px at -6% 6%, rgba(11, 99, 206, 0.14), transparent 58%),
+      linear-gradient(180deg, #ffffff 0%, #f7fafc 100%);
+  }
+  .bg-sidebar {
+    background: linear-gradient(180deg, #ffffff 0%, #f7fafc 100%);
+  }
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+

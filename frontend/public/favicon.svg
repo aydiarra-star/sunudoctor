@@ -2,14 +2,15 @@
   <defs>
     <linearGradient id="sd-grad" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#0B63CE"/>
+      <stop offset="55%" stop-color="#0A7BE0"/>
       <stop offset="100%" stop-color="#12B8E8"/>
     </linearGradient>
   </defs>
-  <rect x="2" y="2" width="60" height="60" rx="16" fill="url(#sd-grad)"/>
-  <!-- health cross -->
-  <path d="M27 14h10v9h9v10h-9v9H27v-9h-9V23h9z" fill="#FFFFFF" opacity="0.95"/>
-  <!-- human + digital connection nodes -->
-  <circle cx="45" cy="45" r="3.4" fill="#EAF4FF"/>
-  <circle cx="19" cy="45" r="3.4" fill="#EAF4FF"/>
-  <path d="M19 45h26" stroke="#EAF4FF" stroke-width="2.2" stroke-linecap="round" opacity="0.85"/>
+  <rect x="2" y="2" width="60" height="60" rx="17" fill="url(#sd-grad)"/>
+  <!-- care cross, softly rounded -->
+  <path d="M27.5 13.5h9a2 2 0 0 1 2 2v9h9a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-9v9a2 2 0 0 1-2 2h-9a2 2 0 0 1-2-2v-9h-9a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2h9v-9a2 2 0 0 1 2-2z" fill="#FFFFFF" opacity="0.96"/>
+  <!-- connected-care nodes + human arc -->
+  <path d="M17 50c3.6-4.2 8.6-6.4 15-6.4S43.4 45.8 47 50" stroke="#EAF4FF" stroke-width="2.6" stroke-linecap="round" fill="none" opacity="0.95"/>
+  <circle cx="19" cy="42.5" r="3.1" fill="#EAF4FF"/>
+  <circle cx="45" cy="42.5" r="3.1" fill="#EAF4FF"/>
 </svg>
