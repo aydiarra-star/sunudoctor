@@ -68,3 +68,23 @@ docker compose -f docker-compose.prod.yml --env-file .env.production up -d --bui
   and TURN for WebRTC all require credentials and are `NON CONNECTÉ` until set.
 - Pushing to GitHub requires a token with `push` scope; the sandbox token is
   read-only.
+- **GitHub Actions only scans `.github/workflows/`.** The CI file currently
+  lives at `.github/ci.yml`, which GitHub never executes. Moving it requires a
+  token with the `workflow` scope; the `repo`-scoped PAT gets
+  `refusing to allow a Personal Access Token to create or update workflow`.
+- The `gh-pages` branch is deployed manually (`npm run build` with
+  `VITE_BASE=/sunudoctor/`, then commit `frontend/dist` to `gh-pages`). This
+  path only needs `repo` scope and works even without the `workflow` scope.
+
+## Verification module (LOT 3)
+
+- Verification never auto-validates. A no-match yields "additional verification
+  required", never a fraud accusation.
+- Badges come from `app/services/verification.py::badge`; they never mention the
+  Ministry of Health unless an authorised source actually confirmed.
+- The facility registry is **not fabricated**: the local referential is empty
+  until controlled imports run. Regions are public administrative data;
+  districts are derived and may legitimately be empty.
+- Registration for professionals requires a facility block (`facility_id` or
+  `requested_facility_name`).
+- `require_verified_professional` gates clinical scribe writes.
