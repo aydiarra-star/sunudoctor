@@ -32,7 +32,8 @@ Monorepo :
 - `docs/` — documentation complète (architecture, sécurité, IA, Wolof,
   téléconsultation, hors ligne, base de données, déploiement, tests,
   confidentialité).
-- `.github/workflows/` — CI/CD GitHub Actions.
+- `.github/ci.yml` — CI/CD GitHub Actions (à activer en le copiant vers
+  `.github/workflows/ci.yml` avec un jeton disposant du scope `workflow`).
 
 ## Installation
 

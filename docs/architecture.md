@@ -20,7 +20,7 @@ sunudoctor/
 │       ├── components/   design system, layout
 │       └── pages/        écrans par rôle
 ├── docs/             documentation
-└── .github/workflows/ CI/CD
+└── .github/ci.yml CI/CD
 ```
 
 ## Choix techniques

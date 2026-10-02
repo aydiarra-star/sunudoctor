@@ -14,7 +14,8 @@ Sélection via `ENVIRONMENT`. Aucun secret n'est versionné.
 
 Le frontend est une application statique : il se déploie sur GitHub Pages.
 
-1. Le workflow `.github/workflows/ci.yml` construit le frontend et publie
+1. Le pipeline est conservé dans `.github/ci.yml` (le chemin `.github/workflows/`
+   exige un jeton avec le scope `workflow` ; voir la note ci-dessous). Il construit le frontend et publie
    `frontend/dist` sur GitHub Pages.
 2. `VITE_BASE` est défini sur `/<repo>/` pour que les ressources soient résolues
    sous l'URL de projet GitHub Pages.
@@ -71,6 +72,18 @@ Points de sécurité :
 - l'API **refuse de démarrer** en production si la configuration est dangereuse
   (SECRET_KEY par défaut, base SQLite, fournisseur « live » sans clé,
   `PAYMENT_MODE=live` sans secret de webhook). Voir `production_problems()`.
+
+### Activer le pipeline
+
+GitHub n'accepte d'écrire dans `.github/workflows/` qu'avec un jeton possédant le
+scope `workflow`. Le pipeline est donc versionné dans `.github/ci.yml`. Pour
+l'activer :
+
+```bash
+git mv .github/ci.yml .github/workflows/ci.yml
+git commit -m "ci: activate GitHub Actions pipeline"
+git push          # nécessite un jeton avec le scope `workflow`
+```
 
 ## CI/CD
 
