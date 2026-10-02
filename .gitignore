@@ -29,3 +29,6 @@ dist/
 # Build artifacts
 frontend/dist/
 backend/.coverage
+
+# TypeScript build info
+*.tsbuildinfo
