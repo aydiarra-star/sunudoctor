@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:pages": "tsc -b && vite build --outDir dist-ghpages",
     "preview": "vite preview",
     "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
     "typecheck": "tsc --noEmit",

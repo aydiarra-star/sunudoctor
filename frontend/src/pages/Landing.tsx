@@ -2,6 +2,12 @@ import { Link } from "react-router-dom";
 import { Logo } from "../components/Logo";
 import { useMeta } from "../lib/useMeta";
 
+// Les ancres internes doivent rester valides en routage par hash (GitHub Pages) :
+// on n'utilise donc pas de href="#..." brut, qui écraserait la route courante.
+function scrollToId(id: string) {
+  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 const FEATURES = [
   {
     title: "Scribe clinique",
@@ -38,22 +44,31 @@ export function Landing() {
 
   return (
     <div className="min-h-screen bg-white">
-      <a
-        href="#main"
+      <button
+        type="button"
+        onClick={() => scrollToId("main")}
         className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-lg focus:bg-white focus:px-3 focus:py-2"
       >
         Aller au contenu principal
-      </a>
+      </button>
 
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
         <Logo />
         <div className="hidden items-center gap-6 md:flex">
-          <a href="#features" className="text-sm font-medium text-muted hover:text-primary">
+          <button
+            type="button"
+            onClick={() => scrollToId("features")}
+            className="text-sm font-medium text-muted hover:text-primary"
+          >
             Fonctionnalités
-          </a>
-          <a href="#pricing" className="text-sm font-medium text-muted hover:text-primary">
+          </button>
+          <button
+            type="button"
+            onClick={() => scrollToId("pricing")}
+            className="text-sm font-medium text-muted hover:text-primary"
+          >
             Tarifs
-          </a>
+          </button>
           <Link to="/login" className="btn-secondary">
             Connexion
           </Link>
@@ -95,9 +110,13 @@ export function Landing() {
             <Link to="/register" className="btn-primary px-6 py-3 text-base">
               Créer mon compte
             </Link>
-            <a href="#features" className="btn-secondary px-6 py-3 text-base">
+            <button
+              type="button"
+              onClick={() => scrollToId("features")}
+              className="btn-secondary px-6 py-3 text-base"
+            >
               Découvrir SunuDoctor
-            </a>
+            </button>
           </div>
         </header>
 

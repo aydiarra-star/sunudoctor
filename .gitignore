@@ -28,6 +28,7 @@ dist/
 
 # Build artifacts
 frontend/dist/
+frontend/dist-ghpages/
 backend/.coverage
 
 # TypeScript build info
