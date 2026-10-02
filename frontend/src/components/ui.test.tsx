@@ -5,6 +5,7 @@ import {
   CapabilityBadge,
   ConnectionPill,
   EmptyState,
+  VerificationBadgePill,
   initialsOf,
 } from "../components/ui";
 
@@ -46,5 +47,20 @@ describe("design system primitives", () => {
     expect(initialsOf("Cher")).toBe("CH");
     render(<Avatar name="Awa Ndiaye" />);
     expect(screen.getByText("AN")).toBeInTheDocument();
+  });
+
+  it("verification badge never invents a stronger status than the data", () => {
+    render(
+      <VerificationBadgePill
+        badge={{ label: "Vérification supplémentaire nécessaire", tone: "warning", verified_by: null }}
+      />,
+    );
+    expect(screen.getByText("Vérification supplémentaire nécessaire")).toBeInTheDocument();
+    expect(screen.queryByText(/Ministère/)).not.toBeInTheDocument();
+  });
+
+  it("missing verification badge is explicit, not silently blank", () => {
+    render(<VerificationBadgePill badge={null} />);
+    expect(screen.getByText("Vérification non documentée")).toBeInTheDocument();
   });
 });

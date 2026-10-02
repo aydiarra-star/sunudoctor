@@ -17,6 +17,16 @@ class RegisterRequest(BaseModel):
     profession: str | None = None
     specialty: str | None = None
     license_number: str | None = None
+    # Required facility block for professional registration. The facility must be
+    # selected from the referential; a free-text name only creates an UNVERIFIED
+    # request, never an official facility.
+    region: str | None = None
+    district: str | None = None
+    facility_type: str | None = None
+    facility_id: str | None = None
+    requested_facility_name: str | None = None
+    role_function: str | None = None
+    date_of_birth: datetime | None = None
 
 
 class LoginRequest(BaseModel):
@@ -58,6 +68,9 @@ class ProfessionalOut(BaseModel):
     specialty: str | None = None
     license_number: str | None = None
     verification_status: str
+    verification_level: str = "UNVERIFIED"
+    badge: dict | None = None
+    access_tier: str = "LIMITED"
     is_demo: bool = False
 
     class Config:
@@ -202,6 +215,57 @@ class PaymentRequest(BaseModel):
 class VerificationDecision(BaseModel):
     status: str  # in_review | verified | refused | to_complete
     notes: str | None = None
+
+
+# ---- Facilities & professional verification (P0) ----
+class FacilityRequestCreate(BaseModel):
+    """A user reports a facility missing from the referential.
+
+    This creates a PENDING_VERIFICATION, UNVERIFIED record. It is never
+    presented as an official facility.
+    """
+
+    name: str = Field(min_length=2, max_length=255)
+    type: str = "OTHER"
+    region: str | None = None
+    district: str | None = None
+    commune: str | None = None
+    address: str | None = None
+    phone: str | None = None
+
+
+class AffiliationRequestCreate(BaseModel):
+    facility_id: str
+    role_function: str | None = None
+
+
+class AffiliationDecision(BaseModel):
+    decision: str  # APPROVE | REJECT | SUSPEND | END
+    notes: str | None = None
+
+
+class IdentitySubmit(BaseModel):
+    """Supporting documents for identity verification. References only."""
+
+    documents: list[dict] = Field(default_factory=list)
+
+
+class OfficerDecision(BaseModel):
+    decision: str  # APPROVE | REJECT | REQUEST_MORE_INFORMATION
+    target_level: str | None = None
+    reason: str | None = None
+    source_consulted: str | None = None
+
+
+class RegistryImportRequest(BaseModel):
+    """Staged import of an official/partner referential."""
+
+    content: str  # raw payload, base64-encoded for binary safety
+    format: str = "csv"  # csv | json
+    source: str
+    source_type: str = "OFFICIAL"  # OFFICIAL | PARTNER | MANUAL | COMMUNITY
+    version: str | None = None
+    publish: bool = False
 
 
 TokenResponse.model_rebuild()

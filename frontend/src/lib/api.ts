@@ -81,8 +81,86 @@ export interface User {
     specialty: string | null;
     license_number: string | null;
     verification_status: string;
+    verification_level: string;
+    badge?: VerificationBadge | null;
+    access_tier: string;
     is_demo: boolean;
   } | null;
+}
+
+export interface VerificationBadge {
+  level: string;
+  label: string;
+  tone: "success" | "info" | "warning" | "danger" | "neutral";
+  verified_by: string | null;
+  note?: string;
+}
+
+export interface Facility {
+  id: string;
+  name: string;
+  short_name: string | null;
+  type: string;
+  type_label: string;
+  region: string | null;
+  district: string | null;
+  commune: string | null;
+  address: string | null;
+  official_id: string | null;
+  source: string;
+  source_type: string;
+  status: string;
+  status_label: string;
+  is_demo: boolean;
+  match_score?: number;
+  match_outcome?: string;
+  notice?: string;
+}
+
+export interface Affiliation {
+  id: string;
+  facility_id: string;
+  status: string;
+  requested_at: string;
+  decided_at: string | null;
+  ended_at: string | null;
+  role_function?: string | null;
+}
+
+export interface MyVerification {
+  professional_id: string;
+  verification_status: string;
+  verification_level: string;
+  level_label: string;
+  badge: VerificationBadge;
+  access_tier: string;
+  can_author_clinical: boolean;
+  review_notes: string | null;
+  message: string;
+  affiliations: Affiliation[];
+  documents_received?: number;
+  duplicates_flagged?: number;
+}
+
+export interface QueueEntry {
+  professional_id: string;
+  full_name: string | null;
+  profession: string | null;
+  specialty: string | null;
+  license_number: string | null;
+  verification_level: string;
+  submitted_at: string;
+  documents_submitted: number;
+  is_self: boolean;
+  match: {
+    outcome: string;
+    score: number;
+    definitive: boolean;
+    requires_human_review: boolean;
+    reasons: string[];
+    source_note: string;
+    source_consulted: string | null;
+  };
 }
 
 export interface TokenResponse {

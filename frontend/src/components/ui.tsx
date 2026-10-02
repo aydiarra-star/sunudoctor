@@ -361,6 +361,33 @@ export function StatusPill({ status }: { status: string }) {
   return <span className={map[status] ?? "badge-muted"}>{labels[status] ?? status}</span>;
 }
 
+/* -------------------------------------------------- Verification badge */
+
+const BADGE_TONE_CLASS: Record<string, string> = {
+  success: "badge-ok",
+  info: "badge-info",
+  warning: "badge-warn",
+  danger: "badge-danger",
+  neutral: "badge-muted",
+};
+
+/**
+ * Professional verification badge. The wording comes from the backend so the UI
+ * can never claim a stronger verification than the data supports.
+ */
+export function VerificationBadgePill({
+  badge,
+}: {
+  badge: { label: string; tone: string; verified_by?: string | null; note?: string } | null | undefined;
+}) {
+  if (!badge) return <span className="badge-muted">Vérification non documentée</span>;
+  return (
+    <span className={BADGE_TONE_CLASS[badge.tone] ?? "badge-muted"} title={badge.note ?? undefined}>
+      {badge.label}
+    </span>
+  );
+}
+
 /* --------------------------------------------------------- Demo banner */
 
 /** Bandeau "Mode démonstration" — always shown when capabilities are synthetic. */

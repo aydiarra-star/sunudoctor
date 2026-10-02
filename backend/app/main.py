@@ -16,7 +16,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.api.routes import admin, auth, billing, clinical, coordination, patients, scribe
+from app.api.routes import (
+    admin,
+    auth,
+    billing,
+    clinical,
+    coordination,
+    patients,
+    registry,
+    scribe,
+    verification,
+)
 from app.core.config import settings
 from app.core.database import Base, engine
 from app.core.observability import (
@@ -143,14 +153,24 @@ def meta():
     so this endpoint can never claim a service is connected when it is not.
     """
     from app.services.ai.factory import provider_status
+    from app.services.registry import registry_provider_status
 
     status = provider_status()
+    registry = registry_provider_status()
     return {
         "app": "SunuDoctor",
         "ai_mode": settings.ai_mode,
         "payment_mode": settings.payment_mode,
         "demo_banner": "Mode démonstration" if settings.ai_mode == "demo" else None,
         "providers": status,
+        "registry_providers": {
+            name: {
+                "connected": info.connected,
+                "reason": info.reason,
+                "source_type": info.source_type,
+            }
+            for name, info in registry.items()
+        },
         "capabilities": {
             "clinical_scribe_pipeline": "live" if status["clinical_ai"]["connected"] else "demo",
             "wolof_speech_to_text": (
@@ -179,6 +199,8 @@ app.include_router(clinical.router, prefix="/api")
 app.include_router(coordination.router, prefix="/api")
 app.include_router(billing.router, prefix="/api")
 app.include_router(admin.router, prefix="/api")
+app.include_router(registry.router, prefix="/api")
+app.include_router(verification.router, prefix="/api")
 
 
 # --- Optional static serving of the built frontend (single-origin deploys) ---

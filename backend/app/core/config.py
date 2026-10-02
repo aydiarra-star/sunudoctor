@@ -72,6 +72,19 @@ class Settings(BaseSettings):
     # Optional: path to a built frontend to serve as a single-origin SPA.
     frontend_dist: str = ""
 
+    # Health facility registry. SunuDoctor never fabricates a referential and
+    # never scrapes a protected system. An official or partner integration is
+    # only used when an authorised endpoint and credential are supplied.
+    official_registry_url: str = ""
+    official_registry_key: str = ""
+    partner_registry_url: str = ""
+    partner_registry_key: str = ""
+    # Minimum similarity score for a facility candidate to be surfaced. A match
+    # is only ever informational: it never validates a professional on its own.
+    facility_match_threshold: float = 0.55
+    # Minimum professional-verification level required to author clinical data.
+    require_verified_professional: bool = True
+
     # Roles for which MFA is mandatory. Enforced at login when the user has MFA
     # enabled; operators should require enrolment for these roles.
     mfa_required_for_roles: str = "admin,structure_admin"

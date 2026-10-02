@@ -16,10 +16,14 @@ from app.core.security import (
     verify_password,
 )
 from app.models.entities import (
+    FacilityStatus,
+    HealthcareFacility,
     Organization,
     Professional,
+    RegistrySourceType,
     Role,
     User,
+    VerificationLevel,
     VerificationRequest,
     VerificationStatus,
 )
@@ -32,7 +36,7 @@ from app.schemas import (
     TokenResponse,
     UserOut,
 )
-from app.services import audit
+from app.services import audit, verification
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -76,6 +80,36 @@ def register(
         db.add(org)
         db.flush()
 
+    # Professional registration must reference a facility from the referential.
+    # A free-text name only creates an UNVERIFIED, PENDING_VERIFICATION request;
+    # it never becomes an official facility automatically.
+    facility = None
+    if role in PROFESSIONAL_ROLES:
+        if payload.facility_id:
+            facility = db.get(HealthcareFacility, payload.facility_id)
+            if facility is None or facility.status == FacilityStatus.archived:
+                raise HTTPException(
+                    status.HTTP_400_BAD_REQUEST,
+                    "Structure sélectionnée introuvable dans le référentiel.",
+                )
+        elif payload.requested_facility_name:
+            facility = HealthcareFacility(
+                name=payload.requested_facility_name.strip()[:255],
+                region=payload.region,
+                district=payload.district,
+                source=f"Demande à l'inscription ({payload.email})",
+                source_type=RegistrySourceType.manual,
+                status=FacilityStatus.pending_verification,
+            )
+            db.add(facility)
+            db.flush()
+        else:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                "Sélectionnez votre structure de santé, ou demandez sa vérification "
+                "si elle n'apparaît pas dans le référentiel.",
+            )
+
     user = User(
         email=payload.email,
         hashed_password=hash_password(payload.password),
@@ -95,10 +129,18 @@ def register(
             license_number=payload.license_number,
             organization_id=org.id if org else None,
             verification_status=VerificationStatus.pending,
+            verification_level=VerificationLevel.unverified,
         )
         db.add(prof)
         db.flush()
         db.add(VerificationRequest(professional_id=prof.id))
+
+        if facility is not None:
+            verification.request_affiliation(
+                db, prof, facility, role_function=payload.role_function
+            )
+        # Duplicate detection: informational, never auto-resolved.
+        verification.flag_duplicates(db, prof)
 
     db.commit()
     db.refresh(user)
@@ -225,7 +267,12 @@ def logout(
 def me(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     prof = db.query(Professional).filter(Professional.user_id == user.id).first()
     out = MeOut.model_validate(user)
-    out.professional = ProfessionalOut.model_validate(prof) if prof else None
+    if prof:
+        out.professional = ProfessionalOut.model_validate(prof)
+        level = prof.verification_level
+        out.professional.verification_level = level.value
+        out.professional.badge = verification.badge(level)
+        out.professional.access_tier = verification.access_tier(level)
     return out
 
 
