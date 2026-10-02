@@ -19,12 +19,31 @@ from dataclasses import dataclass, field
 
 
 @dataclass
+class TranscriptionSegment:
+    """A time-aligned fragment of a transcript.
+
+    Segments make code-switching auditable: each fragment keeps its own text,
+    detected language and confidence, so the professional can see exactly which
+    part of the audio produced which words.
+    """
+
+    start: float
+    end: float
+    text: str
+    language: str | None = None
+    confidence: float | None = None
+
+
+@dataclass
 class TranscriptionResult:
     raw_text: str
     language: str = "wolof"
     provider: str = "demo"
     is_demo: bool = True
     uncertain_spans: list[str] = field(default_factory=list)
+    segments: list[TranscriptionSegment] = field(default_factory=list)
+    confidence: float | None = None
+    duration_seconds: float | None = None
 
 
 @dataclass
@@ -168,3 +187,19 @@ class AIValidationProvider(ABC):
     @abstractmethod
     def validate(self, note: StructuredNote, transcription: str) -> ValidationResult:
         """Review a draft note for completeness/consistency. Never adds content."""
+
+
+@dataclass
+class ProviderSelection:
+    """Result of asking the factory for a provider.
+
+    ``is_demo`` is True when the returned provider is the demonstration
+    implementation. ``reason`` explains, in French, why a real provider was not
+    used — so the UI can show "configuration requise" with a precise cause
+    instead of silently pretending to be live.
+    """
+
+    provider: object
+    is_demo: bool
+    requested: str
+    reason: str = ""

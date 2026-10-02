@@ -34,14 +34,33 @@ class Settings(BaseSettings):
     clinical_ai_provider: str = "demo"
     translation_provider: str = "demo"
     openai_api_key: str = ""
+    openai_base_url: str = "https://api.openai.com/v1"
+    clinical_ai_model: str = "gpt-4o-mini"
     azure_speech_key: str = ""
     azure_speech_region: str = ""
+    azure_speech_endpoint: str = ""
+    # Transcription: default recognition language when the caller has no hint.
+    stt_default_language: str = "wo-SN"
+    # Maximum accepted audio upload (bytes). Guards against abuse.
+    max_audio_bytes: int = 25 * 1024 * 1024
 
-    # Payments. Keys stay server-side only.
+    # Teleconsultation / WebRTC. Signalling is a short-lived, authenticated,
+    # single-room token flow. ICE servers (STUN/TURN) must be provided by the
+    # operator; without them video stays "configuration requise".
+    turn_url: str = ""
+    turn_username: str = ""
+    turn_password: str = ""
+    stun_urls: str = "stun:stun.l.google.com:19302"
+    teleconsultation_token_ttl_minutes: int = 30
+
+    # Payments. Keys stay server-side only. Webhooks are verified server-side.
     payment_mode: Literal["demo", "live"] = "demo"
     wave_api_key: str = ""
+    wave_webhook_secret: str = ""
     orange_money_api_key: str = ""
+    orange_money_webhook_secret: str = ""
     card_provider_api_key: str = ""
+    card_webhook_secret: str = ""
 
     # Trial period for new subscriptions (days).
     trial_days: int = 14
@@ -60,6 +79,63 @@ class Settings(BaseSettings):
     @property
     def is_demo(self) -> bool:
         return self.ai_mode == "demo"
+
+    # --- Capability helpers: these decide whether a feature is really connected.
+    # They are the single source of truth used by the API, the factory and the
+    # honesty endpoints. A feature is "live" only when BOTH the provider is
+    # selected AND its credential is present.
+    @property
+    def stt_configured(self) -> bool:
+        if self.stt_provider == "azure":
+            return bool(self.azure_speech_key and self.azure_speech_region)
+        if self.stt_provider == "openai":
+            return bool(self.openai_api_key)
+        return False
+
+    @property
+    def clinical_ai_configured(self) -> bool:
+        return self.clinical_ai_provider == "openai" and bool(self.openai_api_key)
+
+    @property
+    def translation_configured(self) -> bool:
+        return self.translation_provider == "openai" and bool(self.openai_api_key)
+
+    @property
+    def turn_configured(self) -> bool:
+        return bool(self.turn_url)
+
+    @property
+    def ice_servers(self) -> list[dict]:
+        servers: list[dict] = []
+        stuns = [s.strip() for s in self.stun_urls.split(",") if s.strip()]
+        if stuns:
+            servers.append({"urls": stuns})
+        if self.turn_url:
+            entry: dict = {"urls": [self.turn_url]}
+            if self.turn_username:
+                entry["username"] = self.turn_username
+            if self.turn_password:
+                entry["credential"] = self.turn_password
+            servers.append(entry)
+        return servers
+
+    @property
+    def payment_provider_configured(self) -> dict[str, bool]:
+        return {
+            "wave": bool(self.wave_api_key),
+            "orange_money": bool(self.orange_money_api_key),
+            "card": bool(self.card_provider_api_key),
+            "bank": False,
+            "other": False,
+        }
+
+    @property
+    def webhook_secrets(self) -> dict[str, str]:
+        return {
+            "wave": self.wave_webhook_secret,
+            "orange_money": self.orange_money_webhook_secret,
+            "card": self.card_webhook_secret,
+        }
 
 
 @lru_cache

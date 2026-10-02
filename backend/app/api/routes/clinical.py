@@ -1,11 +1,14 @@
 """Documents, appointments and teleconsultation.
 
-Video is prepared with a WebRTC-ready architecture but is NOT operational until
-a real signalling service is configured. The API reports ``provider="none"`` and
-the UI must display "Vidéo — configuration requise". It never claims a live call.
+Teleconsultation now has a real, secure WebRTC signalling path: a professional
+accepts a request, a private room token is issued, and only the two authorized
+participants can exchange offer/answer/ICE envelopes. Media never transits the
+server. Video is still reported as "configuration requise" until the operator
+provides real TURN servers — the API never claims a live call without them.
 """
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -22,7 +25,7 @@ from app.models.entities import (
     Teleconsultation,
     User,
 )
-from app.schemas import DocumentCreate, TeleconsultationCreate
+from app.schemas import DocumentCreate, SignalRequest, TeleconsultationCreate
 from app.services import audit
 
 router = APIRouter(tags=["clinical"])
@@ -258,14 +261,153 @@ def set_report(
 
 @router.get("/teleconsultations/ice-servers")
 def ice_servers():
-    """Return ICE server configuration for a future WebRTC client.
+    """Return ICE server configuration for the WebRTC client.
 
-    Without real TURN/STUN credentials the list is empty and ``configured`` is
-    False, so the client knows video cannot work yet.
+    STUN is public. TURN requires operator-provided credentials. ``configured``
+    is True only when a TURN server is present, because without TURN many mobile
+    networks cannot establish a peer connection. The client must show
+    "Vidéo — configuration requise" while ``configured`` is False.
     """
+    from app.core.config import settings
+
     return {
-        "configured": False,
-        "ice_servers": [],
-        "notice": "Vidéo — configuration requise. Fournissez des serveurs ICE (STUN/TURN) "
-        "réels pour activer la visioconsultation.",
+        "configured": settings.turn_configured,
+        "ice_servers": settings.ice_servers,
+        "turn_configured": settings.turn_configured,
+        "notice": (
+            "Serveurs ICE fournis. La visioconsultation peut être négociée."
+            if settings.turn_configured
+            else "Vidéo — configuration requise. Fournissez des serveurs TURN réels "
+            "pour activer la visioconsultation."
+        ),
     }
+
+
+@router.post("/teleconsultations/{tele_id}/accept")
+def accept_teleconsultation(
+    tele_id: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    meta: dict = Depends(get_client_meta),
+):
+    """Professional accepts a teleconsultation request and opens a room.
+
+    A room is created only for an authorized participant. The room reference is
+    a random, unguessable token — never a public room name.
+    """
+    import secrets
+
+    tele = db.get(Teleconsultation, tele_id)
+    if tele is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Téléconsultation introuvable")
+    if tele.professional_id != user.id:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Non autorisé")
+    from app.core.config import settings
+
+    tele.status = "accepted"
+    tele.provider = "webrtc" if settings.turn_configured else "none"
+    tele.room_ref = secrets.token_urlsafe(24)
+    db.commit()
+    audit.log_action(
+        db,
+        action="teleconsultation_accept",
+        actor=user,
+        resource_type="teleconsultation",
+        resource_id=tele.id,
+        patient_id=tele.patient_id,
+        ip=meta.get("ip"),
+    )
+    return {
+        "id": tele.id,
+        "status": tele.status,
+        "provider": tele.provider,
+        "room_ref": tele.room_ref,
+        "video_status": "pret" if settings.turn_configured else "configuration_requise",
+    }
+
+
+@router.post("/teleconsultations/{tele_id}/signal")
+def post_signal(
+    tele_id: str,
+    payload: SignalRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Store a WebRTC signalling envelope (offer/answer/ICE candidate/bye).
+
+    Only the two participants of the teleconsultation may post or read signals
+    for its room. Messages expire quickly. Media never transits the server.
+    """
+    from datetime import timedelta
+
+    from app.models.entities import SignalingMessage
+
+    kind = payload.kind
+    if kind not in {"offer", "answer", "candidate", "bye"}:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Type de signal invalide")
+    tele = db.get(Teleconsultation, tele_id)
+    if tele is None or not tele.room_ref:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Session introuvable")
+    if user.id not in {tele.professional_id, _patient_owner_id(db, tele.patient_id)}:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Participant non autorisé")
+    now = datetime.now(UTC)
+    msg = SignalingMessage(
+        room_ref=tele.room_ref,
+        sender_id=user.id,
+        kind=kind,
+        payload_json=json.dumps(payload.payload, ensure_ascii=False),
+        created_at=now,
+        expires_at=now + timedelta(minutes=5),
+    )
+    db.add(msg)
+    db.commit()
+    return {"id": msg.id, "kind": kind}
+
+
+@router.get("/teleconsultations/{tele_id}/signal")
+def get_signals(
+    tele_id: str,
+    since_id: str | None = None,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Poll signalling envelopes for a room, excluding the caller's own."""
+    from app.models.entities import SignalingMessage
+
+    tele = db.get(Teleconsultation, tele_id)
+    if tele is None or not tele.room_ref:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Session introuvable")
+    if user.id not in {tele.professional_id, _patient_owner_id(db, tele.patient_id)}:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Participant non autorisé")
+    now = datetime.now(UTC)
+    q = (
+        db.query(SignalingMessage)
+        .filter(SignalingMessage.room_ref == tele.room_ref)
+        .filter(SignalingMessage.sender_id != user.id)
+        .filter(SignalingMessage.expires_at > now)
+    )
+    msgs = q.order_by(SignalingMessage.created_at).all()
+    return [
+        {
+            "id": m.id,
+            "kind": m.kind,
+            "payload": json.loads(m.payload_json),
+            "sender_id": m.sender_id,
+            "created_at": m.created_at,
+        }
+        for m in msgs
+    ]
+
+
+def _patient_owner_id(db: Session, patient_id: str) -> str | None:
+    """The user id that owns a patient record (via the patient's own grant)."""
+    from app.models.entities import CareTeamAccess, Role
+    from app.models.entities import User as UserModel
+
+    row = (
+        db.query(CareTeamAccess)
+        .join(UserModel, UserModel.id == CareTeamAccess.user_id)
+        .filter(CareTeamAccess.patient_id == patient_id, UserModel.role == Role.patient)
+        .first()
+    )
+    return row.user_id if row else None

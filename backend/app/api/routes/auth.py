@@ -128,9 +128,44 @@ def login(
 ):
     user = db.query(User).filter(User.email == payload.email).first()
     if not user or not verify_password(payload.password, user.hashed_password):
+        audit.log_action(
+            db,
+            action="login_failed",
+            actor=None,
+            resource_type="user",
+            resource_id=None,
+            meta={"email": payload.email},
+            ip=meta.get("ip"),
+            user_agent=meta.get("user_agent"),
+        )
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Identifiants invalides")
     if not user.is_active:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Compte désactivé")
+
+    # MFA is enforced: when enabled, a valid TOTP code is mandatory. A missing or
+    # wrong code never yields a token.
+    if user.mfa_enabled:
+        if not payload.mfa_code:
+            raise HTTPException(
+                status.HTTP_401_UNAUTHORIZED,
+                "Code de vérification à deux facteurs requis",
+            )
+        if not user.mfa_secret or not pyotp.TOTP(user.mfa_secret).verify(
+            payload.mfa_code, valid_window=1
+        ):
+            audit.log_action(
+                db,
+                action="login_failed",
+                actor=user,
+                resource_type="user",
+                resource_id=user.id,
+                meta={"reason": "mfa_invalid"},
+                ip=meta.get("ip"),
+                user_agent=meta.get("user_agent"),
+            )
+            raise HTTPException(
+                status.HTTP_401_UNAUTHORIZED, "Code à deux facteurs invalide"
+            )
 
     audit.log_action(
         db,

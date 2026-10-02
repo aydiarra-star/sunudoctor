@@ -22,6 +22,7 @@ class RegisterRequest(BaseModel):
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+    mfa_code: str | None = None
 
 
 class TokenResponse(BaseModel):
@@ -148,6 +149,11 @@ class TeleconsultationCreate(BaseModel):
     patient_id: str
     scheduled_at: datetime | None = None
     reason: str | None = None
+
+
+class SignalRequest(BaseModel):
+    kind: str  # offer | answer | candidate | bye
+    payload: dict = Field(default_factory=dict)
 
 
 # ---- Messages ----

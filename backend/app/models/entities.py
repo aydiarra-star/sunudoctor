@@ -291,6 +291,25 @@ class Teleconsultation(Base, TimestampMixin):
     report: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
+class SignalingMessage(Base):
+    """Short-lived WebRTC signalling envelope (offer/answer/ICE candidate).
+
+    Messages are scoped to a room, expire quickly, and are only readable by
+    participants authorized for that room. This is a minimal, self-hosted
+    signalling store; no media ever transits the server.
+    """
+
+    __tablename__ = "signaling_messages"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    room_ref: Mapped[str] = mapped_column(String(64), index=True)
+    sender_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
+    kind: Mapped[str] = mapped_column(String(16))  # offer | answer | candidate | bye
+    payload_json: Mapped[str] = mapped_column(Text, default="{}")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime)
+
+
 class Message(Base, TimestampMixin):
     __tablename__ = "messages"
 
@@ -360,10 +379,32 @@ class Payment(Base, TimestampMixin):
     )
     provider: Mapped[str] = mapped_column(String(32))  # wave | orange_money | card | bank
     provider_ref: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    idempotency_key: Mapped[str | None] = mapped_column(String(128), unique=True, nullable=True)
     amount_fcfa: Mapped[int] = mapped_column(Integer)
     currency: Mapped[str] = mapped_column(String(8), default="XOF")
     status: Mapped[str] = mapped_column(String(32), default="pending")
     is_demo: Mapped[bool] = mapped_column(Boolean, default=False)
+    confirmed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+
+class WebhookEvent(Base):
+    """Idempotent record of every provider webhook received.
+
+    A webhook is processed at most once: the ``event_key`` (provider + event id)
+    is unique. Replays are stored but ignored. This is what makes server-side
+    confirmation trustworthy — a browser can never assert payment success.
+    """
+
+    __tablename__ = "webhook_events"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    provider: Mapped[str] = mapped_column(String(32), index=True)
+    event_key: Mapped[str] = mapped_column(String(191), unique=True, index=True)
+    event_type: Mapped[str] = mapped_column(String(64), default="")
+    signature_valid: Mapped[bool] = mapped_column(Boolean, default=False)
+    processed: Mapped[bool] = mapped_column(Boolean, default=False)
+    payload_json: Mapped[str] = mapped_column(Text, default="{}")
+    received_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, index=True)
 
 
 class AuditLog(Base):

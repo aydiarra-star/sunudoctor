@@ -40,6 +40,7 @@ from app.services.ai.factory import (
     get_safety_provider,
     get_stt_provider,
 )
+from app.services.ai.real_providers import ProviderUnavailable
 
 router = APIRouter(prefix="/scribe", tags=["scribe"])
 
@@ -127,9 +128,17 @@ def transcribe(
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "Audio invalide") from None
 
     provider, is_demo = get_stt_provider()
-    result = provider.transcribe(
-        audio, language_hint=payload.language_hint, text_hint=payload.text_hint
-    )
+    try:
+        result = provider.transcribe(
+            audio, language_hint=payload.language_hint, text_hint=payload.text_hint
+        )
+    except ProviderUnavailable as exc:
+        # A real STT engine is configured but unreachable: degrade honestly.
+        # We never fabricate a transcript.
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            f"Service de transcription temporairement indisponible. {exc}",
+        ) from exc
 
     # Detect the actual language mix without ever rewriting the transcript.
     detector, detection_is_demo = get_language_detection_provider()
@@ -168,6 +177,18 @@ def transcribe(
         "is_demo": is_demo,
         "demo_banner": "Mode démonstration" if is_demo else None,
         "uncertain_spans": result.uncertain_spans,
+        "confidence": result.confidence,
+        "duration_seconds": result.duration_seconds,
+        "segments": [
+            {
+                "start": s.start,
+                "end": s.end,
+                "text": s.text,
+                "language": s.language,
+                "confidence": s.confidence,
+            }
+            for s in result.segments
+        ],
         "audio_retained": transcription.audio_ref is not None,
         "detection": (
             {
@@ -199,7 +220,16 @@ def structure(
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Rôle non autorisé")
 
     provider, is_demo = get_clinical_ai_provider()
-    note = provider.structure(transcription.raw_text, language=transcription.language)
+    try:
+        note = provider.structure(transcription.raw_text, language=transcription.language)
+    except ProviderUnavailable as exc:
+        # The clinical AI is unreachable. The transcript is preserved and the
+        # API says so plainly — it never invents a note.
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Analyse clinique indisponible — transcription disponible. "
+            f"Vous pouvez saisir la note manuellement. ({exc})",
+        ) from exc
 
     safety_provider = get_safety_provider()
     note, flags = safety_provider.review(note, transcription.raw_text)
