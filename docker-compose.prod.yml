@@ -1,0 +1,91 @@
+# SunuDoctor — production stack (PostgreSQL + API + web).
+#
+# Usage:
+#   cp .env.production.example .env.production   # fill in real secrets
+#   docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+#
+# Secrets are supplied ONLY through the environment file, which is gitignored.
+# Nothing sensitive is baked into an image. Clinical data lives in PostgreSQL;
+# billing lives in the same database but in separate tables (never mixed).
+name: sunudoctor
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-sunudoctor}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:-sunudoctor}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sunudoctor} -d ${POSTGRES_DB:-sunudoctor}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # Not published to the host: only reachable on the internal network.
+    expose:
+      - "5432"
+
+  api:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ENVIRONMENT: production
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-sunudoctor}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-sunudoctor}
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+      # AI providers — leave empty to run in clearly-labelled demo mode.
+      AI_MODE: ${AI_MODE:-demo}
+      STT_PROVIDER: ${STT_PROVIDER:-demo}
+      CLINICAL_AI_PROVIDER: ${CLINICAL_AI_PROVIDER:-demo}
+      AZURE_SPEECH_KEY: ${AZURE_SPEECH_KEY:-}
+      AZURE_SPEECH_REGION: ${AZURE_SPEECH_REGION:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      # Payments — leave empty to run in demo mode. Secrets stay server-side.
+      PAYMENT_MODE: ${PAYMENT_MODE:-demo}
+      WAVE_API_KEY: ${WAVE_API_KEY:-}
+      WAVE_WEBHOOK_SECRET: ${WAVE_WEBHOOK_SECRET:-}
+      ORANGE_MONEY_API_KEY: ${ORANGE_MONEY_API_KEY:-}
+      ORANGE_MONEY_WEBHOOK_SECRET: ${ORANGE_MONEY_WEBHOOK_SECRET:-}
+      CARD_PROVIDER_API_KEY: ${CARD_PROVIDER_API_KEY:-}
+      CARD_WEBHOOK_SECRET: ${CARD_WEBHOOK_SECRET:-}
+      # WebRTC — real TURN required for video on mobile networks.
+      TURN_URL: ${TURN_URL:-}
+      TURN_USERNAME: ${TURN_USERNAME:-}
+      TURN_CREDENTIAL: ${TURN_CREDENTIAL:-}
+      # Hardening.
+      RATE_LIMIT_REQUESTS: ${RATE_LIMIT_REQUESTS:-120}
+      MFA_REQUIRED_FOR_ROLES: ${MFA_REQUIRED_FOR_ROLES:-admin,structure_admin}
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=3).status==200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  web:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_BASE: /api
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "${WEB_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  pgdata:

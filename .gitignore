@@ -1,0 +1,38 @@
+# Secrets — never commit real values
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+*.db
+*.sqlite3
+sunudoctor.db
+
+# Node / frontend
+node_modules/
+dist/
+.vite/
+*.local
+
+# Editors / OS
+.DS_Store
+.idea/
+.vscode/
+*.log
+
+# Build artifacts
+frontend/dist/
+frontend/dist-ghpages/
+backend/.coverage
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Production env (secrets)
+.env.production

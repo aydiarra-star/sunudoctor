@@ -1,0 +1,184 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend — lint, tests, security
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install ruff pip-audit
+
+      - name: Lint (ruff)
+        run: ruff check app tests
+
+      - name: Unit + integration tests
+        env:
+          AI_MODE: demo
+          PAYMENT_MODE: demo
+          SECRET_KEY: test-secret-key-not-for-production
+          DATABASE_URL: sqlite:///./test_ci.db
+        run: pytest -q
+
+      - name: Security audit (pip-audit)
+        # Non-blocking: advisories are reported but do not fail the build yet.
+        run: pip-audit -r requirements.txt || true
+
+  frontend:
+    name: Frontend — lint, typecheck, tests, build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Build
+        env:
+          VITE_BASE: /${{ github.event.repository.name }}/
+        run: npm run build
+
+      - name: Add SPA fallback and .nojekyll
+        run: |
+          cp dist/index.html dist/404.html
+          touch dist/.nojekyll
+
+      - name: Upload Pages artifact
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: frontend/dist
+
+  docker:
+    name: Docker — build images, migrate against PostgreSQL
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: sunudoctor
+          POSTGRES_PASSWORD: ci-password
+          POSTGRES_DB: sunudoctor
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sunudoctor"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Apply migrations to PostgreSQL
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql+psycopg://sunudoctor:ci-password@localhost:5432/sunudoctor
+          SECRET_KEY: ci-secret-key-at-least-32-characters-long
+        run: |
+          python -m alembic upgrade head
+          python -m alembic current
+
+      - name: Build backend image
+        run: docker build -t sunudoctor-api:ci ./backend
+
+      - name: Build frontend image
+        run: docker build -t sunudoctor-web:ci ./frontend
+
+      - name: Smoke-test backend image against PostgreSQL
+        run: |
+          docker network create sd-ci
+          docker run -d --name pg --network sd-ci \
+            -e POSTGRES_USER=sunudoctor -e POSTGRES_PASSWORD=ci-password \
+            -e POSTGRES_DB=sunudoctor postgres:16-alpine
+          for i in $(seq 1 30); do
+            docker exec pg pg_isready -U sunudoctor && break || sleep 2
+          done
+          docker run -d --name api --network sd-ci -p 8000:8000 \
+            -e ENVIRONMENT=production \
+            -e DATABASE_URL="postgresql+psycopg://sunudoctor:ci-password@pg:5432/sunudoctor" \
+            -e SECRET_KEY="ci-secret-key-at-least-32-characters-long" \
+            sunudoctor-api:ci
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/api/health || true)
+            [ "$code" = "200" ] && break || sleep 2
+          done
+          curl -fsS http://localhost:8000/api/health
+          docker logs api
+
+  deploy:
+    name: Deploy — GitHub Pages
+    needs: [backend, frontend]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

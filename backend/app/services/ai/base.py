@@ -1,0 +1,205 @@
+"""Provider interfaces for the clinical AI pipeline.
+
+The application is never coupled to a single vendor. Four interfaces are
+defined and can be swapped independently:
+
+- SpeechToTextProvider : audio -> text
+- ClinicalAIProvider   : text -> structured note (extraction only, no invention)
+- TranslationProvider  : translation between Wolof / French (and future languages)
+- SafetyProvider       : post-processing guard against hallucination
+
+Every result carries an ``is_demo`` flag. When a provider is not really
+connected, ``is_demo`` is True and the caller must label the output as
+"Mode démonstration".
+"""
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
+
+
+@dataclass
+class TranscriptionSegment:
+    """A time-aligned fragment of a transcript.
+
+    Segments make code-switching auditable: each fragment keeps its own text,
+    detected language and confidence, so the professional can see exactly which
+    part of the audio produced which words.
+    """
+
+    start: float
+    end: float
+    text: str
+    language: str | None = None
+    confidence: float | None = None
+
+
+@dataclass
+class TranscriptionResult:
+    raw_text: str
+    language: str = "wolof"
+    provider: str = "demo"
+    is_demo: bool = True
+    uncertain_spans: list[str] = field(default_factory=list)
+    segments: list[TranscriptionSegment] = field(default_factory=list)
+    confidence: float | None = None
+    duration_seconds: float | None = None
+
+
+@dataclass
+class StructuredField:
+    """A single structured field. ``uncertain`` means a human must verify."""
+
+    value: str | None = None
+    uncertain: bool = False
+    source_span: str | None = None
+
+
+@dataclass
+class StructuredNote:
+    chief_complaint: StructuredField = field(default_factory=StructuredField)
+    history: StructuredField = field(default_factory=StructuredField)
+    symptoms: list[StructuredField] = field(default_factory=list)
+    negated_symptoms: list[str] = field(default_factory=list)
+    history_items: list[StructuredField] = field(default_factory=list)
+    allergies: list[StructuredField] = field(default_factory=list)
+    medications: list[dict] = field(default_factory=list)
+    vitals: list[dict] = field(default_factory=list)
+    exam: StructuredField = field(default_factory=StructuredField)
+    investigations: StructuredField = field(default_factory=StructuredField)
+    diagnosis: StructuredField = field(default_factory=StructuredField)
+    decision: StructuredField = field(default_factory=StructuredField)
+    prescription: StructuredField = field(default_factory=StructuredField)
+    recommendations: StructuredField = field(default_factory=StructuredField)
+    follow_up: StructuredField = field(default_factory=StructuredField)
+    uncertainties: list[str] = field(default_factory=list)
+    provider: str = "demo"
+    is_demo: bool = True
+    model: str = "demo-extractive-v1"
+
+    def to_dict(self) -> dict:
+        def f(x: StructuredField) -> dict:
+            return {"value": x.value, "uncertain": x.uncertain, "source_span": x.source_span}
+
+        return {
+            "chief_complaint": f(self.chief_complaint),
+            "history": f(self.history),
+            "symptoms": [f(s) for s in self.symptoms],
+            "negated_symptoms": self.negated_symptoms,
+            "history_items": [f(s) for s in self.history_items],
+            "allergies": [f(s) for s in self.allergies],
+            "medications": self.medications,
+            "vitals": self.vitals,
+            "exam": f(self.exam),
+            "investigations": f(self.investigations),
+            "diagnosis": f(self.diagnosis),
+            "decision": f(self.decision),
+            "prescription": f(self.prescription),
+            "recommendations": f(self.recommendations),
+            "follow_up": f(self.follow_up),
+            "uncertainties": self.uncertainties,
+            "provider": self.provider,
+            "is_demo": self.is_demo,
+            "model": self.model,
+        }
+
+
+@dataclass
+class LanguageDetection:
+    """Detected language mix for a transcript.
+
+    ``languages`` lists every language observed (code-switching friendly), and
+    ``primary`` is the dominant one. Detection never rewrites the transcript.
+    """
+
+    primary: str = "wolof"
+    languages: list[str] = field(default_factory=list)
+    mixed: bool = False
+    confidence: float = 0.0
+    is_demo: bool = True
+
+
+@dataclass
+class ValidationIssue:
+    field: str
+    code: str
+    message: str
+
+
+@dataclass
+class ValidationResult:
+    """Result of an automated review of a draft note.
+
+    This provider never adds or corrects clinical content: it only flags issues
+    for the human professional to resolve.
+    """
+
+    ok: bool = True
+    issues: list[ValidationIssue] = field(default_factory=list)
+    is_demo: bool = True
+
+
+class SpeechToTextProvider(ABC):
+    name: str = "abstract"
+
+    @abstractmethod
+    def transcribe(
+        self, audio: bytes | None, *, language_hint: str = "wolof", text_hint: str | None = None
+    ) -> TranscriptionResult:
+        """Convert audio to text. Must never invent content not present in input."""
+
+
+class LanguageDetectionProvider(ABC):
+    name: str = "abstract"
+
+    @abstractmethod
+    def detect(self, text: str) -> LanguageDetection:
+        """Detect the language mix (Wolof / Français). Never rewrites the text."""
+
+
+class ClinicalAIProvider(ABC):
+    name: str = "abstract"
+
+    @abstractmethod
+    def structure(self, transcription: str, *, language: str = "wolof") -> StructuredNote:
+        """Extract a structured note. Extraction only: never invent clinical facts."""
+
+
+class TranslationProvider(ABC):
+    name: str = "abstract"
+
+    @abstractmethod
+    def translate(self, text: str, *, source: str, target: str) -> tuple[str, bool]:
+        """Return (translated_text, is_demo)."""
+
+
+class SafetyProvider(ABC):
+    name: str = "abstract"
+
+    @abstractmethod
+    def review(self, note: StructuredNote, transcription: str) -> tuple[StructuredNote, list[str]]:
+        """Return (sanitised_note, flags). Must never add clinical content."""
+
+
+class AIValidationProvider(ABC):
+    name: str = "abstract"
+
+    @abstractmethod
+    def validate(self, note: StructuredNote, transcription: str) -> ValidationResult:
+        """Review a draft note for completeness/consistency. Never adds content."""
+
+
+@dataclass
+class ProviderSelection:
+    """Result of asking the factory for a provider.
+
+    ``is_demo`` is True when the returned provider is the demonstration
+    implementation. ``reason`` explains, in French, why a real provider was not
+    used — so the UI can show "configuration requise" with a precise cause
+    instead of silently pretending to be live.
+    """
+
+    provider: object
+    is_demo: bool
+    requested: str
+    reason: str = ""

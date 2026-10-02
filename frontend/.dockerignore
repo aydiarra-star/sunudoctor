@@ -1,0 +1,9 @@
+node_modules/
+dist/
+dist-ghpages/
+.vite/
+*.log
+.env
+.env.*
+Dockerfile
+.dockerignore

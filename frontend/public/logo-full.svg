@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 64" width="260" height="64" role="img" aria-label="SunuDoctor">
+  <defs>
+    <linearGradient id="sdg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0B63CE"/><stop offset="100%" stop-color="#12B8E8"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="16" fill="url(#sdg)"/>
+  <path d="M27 14h10v9h9v10h-9v9H27v-9h-9V23h9z" fill="#FFFFFF" opacity="0.95"/>
+  <circle cx="45" cy="45" r="3.4" fill="#EAF4FF"/>
+  <circle cx="19" cy="45" r="3.4" fill="#EAF4FF"/>
+  <path d="M19 45h26" stroke="#EAF4FF" stroke-width="2.2" stroke-linecap="round" opacity="0.85"/>
+  <text x="76" y="41" font-family="Inter, system-ui, sans-serif" font-size="26" font-weight="700" fill="#063B7A">Sunu</text>
+  <text x="150" y="41" font-family="Inter, system-ui, sans-serif" font-size="26" font-weight="700" fill="#0B63CE">Doctor</text>
+</svg>
