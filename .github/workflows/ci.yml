@@ -94,6 +94,74 @@ jobs:
         with:
           path: frontend/dist
 
+  docker:
+    name: Docker — build images, migrate against PostgreSQL
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: sunudoctor
+          POSTGRES_PASSWORD: ci-password
+          POSTGRES_DB: sunudoctor
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sunudoctor"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Apply migrations to PostgreSQL
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql+psycopg://sunudoctor:ci-password@localhost:5432/sunudoctor
+          SECRET_KEY: ci-secret-key-at-least-32-characters-long
+        run: |
+          python -m alembic upgrade head
+          python -m alembic current
+
+      - name: Build backend image
+        run: docker build -t sunudoctor-api:ci ./backend
+
+      - name: Build frontend image
+        run: docker build -t sunudoctor-web:ci ./frontend
+
+      - name: Smoke-test backend image against PostgreSQL
+        run: |
+          docker network create sd-ci
+          docker run -d --name pg --network sd-ci \
+            -e POSTGRES_USER=sunudoctor -e POSTGRES_PASSWORD=ci-password \
+            -e POSTGRES_DB=sunudoctor postgres:16-alpine
+          for i in $(seq 1 30); do
+            docker exec pg pg_isready -U sunudoctor && break || sleep 2
+          done
+          docker run -d --name api --network sd-ci -p 8000:8000 \
+            -e ENVIRONMENT=production \
+            -e DATABASE_URL="postgresql+psycopg://sunudoctor:ci-password@pg:5432/sunudoctor" \
+            -e SECRET_KEY="ci-secret-key-at-least-32-characters-long" \
+            sunudoctor-api:ci
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/api/health || true)
+            [ "$code" = "200" ] && break || sleep 2
+          done
+          curl -fsS http://localhost:8000/api/health
+          docker logs api
+
   deploy:
     name: Deploy — GitHub Pages
     needs: [backend, frontend]

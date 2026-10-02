@@ -46,6 +46,32 @@ Variables requises en production : `SECRET_KEY`, `DATABASE_URL`,
 `ENVIRONMENT=production`, et les clés de paiement/IA si les services
 correspondants sont activés.
 
+## Stack Docker de production (PostgreSQL + API + web)
+
+Un déploiement complet est fourni :
+
+```bash
+cp .env.production.example .env.production   # renseigner de vrais secrets
+docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+```
+
+Ce que fait la stack :
+
+| Service | Rôle |
+| --- | --- |
+| `db` | PostgreSQL 16, volume persistant, non exposé à l'hôte |
+| `api` | image FastAPI non-root ; applique `alembic upgrade head` au démarrage |
+| `web` | nginx : sert le SPA et relaie `/api` vers `api` |
+
+Points de sécurité :
+
+- aucun secret n'est intégré aux images ; tout vient de `.env.production`
+  (gitignoré) ;
+- les migrations sont gérées par Alembic, jamais par `create_all` en production ;
+- l'API **refuse de démarrer** en production si la configuration est dangereuse
+  (SECRET_KEY par défaut, base SQLite, fournisseur « live » sans clé,
+  `PAYMENT_MODE=live` sans secret de webhook). Voir `production_problems()`.
+
 ## CI/CD
 
 Pipeline GitHub Actions :
