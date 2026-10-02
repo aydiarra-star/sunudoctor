@@ -65,3 +65,4 @@ class AuditAction:
     AI_STRUCTURE = "ai_structure"
     PAYMENT_CREATE = "payment_create"
     VERIFICATION_REVIEW = "verification_review"
+    EXPORT = "export"

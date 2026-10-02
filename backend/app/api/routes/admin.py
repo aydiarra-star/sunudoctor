@@ -17,9 +17,11 @@ from app.core.database import get_db
 from app.models.entities import (
     AuditLog,
     Organization,
+    Payment,
     Professional,
     Role,
     Subscription,
+    SupportTicket,
     User,
     VerificationRequest,
     VerificationStatus,
@@ -221,4 +223,140 @@ def platform_config(admin: User = Depends(require_admin)):
         "payment_mode": settings.payment_mode,
         "trial_days": settings.trial_days,
         "secrets_exposed": False,
+    }
+
+
+@router.get("/payments")
+def list_payments(
+    limit: int = 100,
+    provider: str | None = None,
+    status_filter: str | None = None,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Billing view. Never exposes clinical content, only billing rows."""
+    q = db.query(Payment)
+    if provider:
+        q = q.filter(Payment.provider == provider)
+    if status_filter:
+        q = q.filter(Payment.status == status_filter)
+    rows = q.order_by(Payment.created_at.desc()).limit(min(limit, 500)).all()
+    return [
+        {
+            "id": p.id,
+            "subscription_id": p.subscription_id,
+            "provider": p.provider,
+            "provider_ref": p.provider_ref,
+            "amount_fcfa": p.amount_fcfa,
+            "currency": p.currency,
+            "status": p.status,
+            "is_demo": p.is_demo,
+            "confirmed_at": p.confirmed_at,
+            "created_at": p.created_at,
+        }
+        for p in rows
+    ]
+
+
+@router.get("/payments/summary")
+def payments_summary(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    """Aggregate billing metrics. Demo payments are reported separately."""
+    from sqlalchemy import func
+
+    rows = (
+        db.query(Payment.status, func.count(Payment.id), func.sum(Payment.amount_fcfa))
+        .group_by(Payment.status)
+        .all()
+    )
+    demo_count = db.query(Payment).filter(Payment.is_demo.is_(True)).count()
+    return {
+        "by_status": [
+            {"status": s, "count": c, "amount_fcfa": int(a or 0)} for s, c, a in rows
+        ],
+        "demo_payments": demo_count,
+        "notice": (
+            "Les paiements marqués is_demo=true sont synthétiques et ne représentent "
+            "aucune transaction réelle."
+        ),
+    }
+
+
+@router.get("/support/tickets")
+def list_support_tickets(
+    limit: int = 100,
+    status_filter: str | None = None,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    q = db.query(SupportTicket)
+    if status_filter:
+        q = q.filter(SupportTicket.status == status_filter)
+    rows = q.order_by(SupportTicket.created_at.desc()).limit(min(limit, 500)).all()
+    return [
+        {
+            "id": t.id,
+            "requester_id": t.requester_id,
+            "subject": t.subject,
+            "category": t.category,
+            "status": t.status,
+            "created_at": t.created_at,
+        }
+        for t in rows
+    ]
+
+
+@router.post("/support/tickets/{ticket_id}/status")
+def set_ticket_status(
+    ticket_id: str,
+    new_status: str,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    ticket = db.get(SupportTicket, ticket_id)
+    if not ticket:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Ticket introuvable")
+    if new_status not in {"open", "in_progress", "resolved", "closed"}:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Statut invalide")
+    ticket.status = new_status
+    db.commit()
+    return {"id": ticket.id, "status": ticket.status}
+
+
+@router.get("/audit/export")
+def export_audit(
+    limit: int = 1000,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Export audit entries as JSON. Exporting is itself an audited action."""
+    rows = (
+        db.query(AuditLog)
+        .order_by(AuditLog.created_at.desc())
+        .limit(min(limit, 5000))
+        .all()
+    )
+    audit.log_action(
+        db,
+        actor=admin,
+        action=audit.AuditAction.EXPORT,
+        resource_type="audit_logs",
+        resource_id=None,
+        meta={"count": len(rows)},
+    )
+    return {
+        "count": len(rows),
+        "entries": [
+            {
+                "id": e.id,
+                "actor_id": e.actor_id,
+                "actor_role": e.actor_role,
+                "action": e.action,
+                "resource_type": e.resource_type,
+                "resource_id": e.resource_id,
+                "patient_id": e.patient_id,
+                "created_at": e.created_at.isoformat() if e.created_at else None,
+                "meta": json.loads(e.meta_json or "{}"),
+            }
+            for e in rows
+        ],
     }

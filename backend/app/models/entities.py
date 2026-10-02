@@ -492,3 +492,16 @@ class VerificationRequest(Base, TimestampMixin):
     reviewed_by: Mapped[str | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class SupportTicket(Base, TimestampMixin):
+    """Support requests raised by users. Contains no clinical content."""
+
+    __tablename__ = "support_tickets"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    requester_id: Mapped[str | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    subject: Mapped[str] = mapped_column(String(200))
+    category: Mapped[str] = mapped_column(String(32), default="general")
+    body: Mapped[str | None] = mapped_column(Text, nullable=True)
+    status: Mapped[str] = mapped_column(String(32), default="open")
