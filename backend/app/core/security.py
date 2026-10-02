@@ -2,6 +2,12 @@
 
 Notes:
 - Passwords are hashed with bcrypt (never stored in clear).
+- bcrypt is used directly rather than through passlib: passlib 1.7.4 probes a
+  ``bcrypt.__about__`` attribute that was removed in bcrypt 4.x, which makes it
+  log a traceback on first use. Calling bcrypt directly is stable across
+  versions and avoids that failure mode in production.
+- bcrypt truncates at 72 bytes; inputs are validated to a smaller maximum at the
+  schema layer, and this guard prevents silent truncation here too.
 - Access tokens are short-lived JWTs; refresh tokens are separate.
 - No secret is hardcoded here; the signing key comes from settings.
 """
@@ -9,20 +15,31 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
+import bcrypt
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 
 from app.core.config import settings
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+_BCRYPT_MAX_BYTES = 72
+
+
+def _prepare(password: str) -> bytes:
+    raw = password.encode("utf-8")
+    if len(raw) > _BCRYPT_MAX_BYTES:
+        # Never silently truncate a credential; refuse it instead.
+        raise ValueError("Mot de passe trop long (maximum 72 octets).")
+    return raw
 
 
 def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+    return bcrypt.hashpw(_prepare(password), bcrypt.gensalt()).decode("utf-8")
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(plain, hashed)
+    try:
+        return bcrypt.checkpw(_prepare(plain), hashed.encode("utf-8"))
+    except (ValueError, TypeError):
+        return False
 
 
 def _create_token(subject: str, expires_delta: timedelta, token_type: str, **claims) -> str:

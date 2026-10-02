@@ -51,11 +51,20 @@ export const api = {
 
 export type Capability = "demo" | "live" | "non_connecte" | "configuration_requise" | "partiel";
 
+export interface ProviderInfo {
+  requested: string;
+  connected: boolean;
+  provider: string;
+  reason: string;
+  model?: string;
+}
+
 export interface Meta {
   app: string;
   ai_mode: "demo" | "live";
   payment_mode: "demo" | "live";
   demo_banner: string | null;
+  providers?: Record<string, ProviderInfo>;
   capabilities: Record<string, Capability>;
 }
 

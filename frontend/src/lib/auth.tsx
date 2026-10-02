@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { api, type TokenResponse, type User } from "./api";
+import { setOfflinePassphrase } from "./offline";
 
 interface AuthState {
   user: User | null;
@@ -33,12 +34,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
       return;
     }
+    // Derive the offline-encryption passphrase from the session token so the
+    // encrypted outbox can be read back after a reload. It is never persisted
+    // as a separate secret.
+    setOfflinePassphrase(token);
     api
       .get<User>("/auth/me")
       .then(setUser)
       .catch(() => {
         localStorage.removeItem("sd_token");
         localStorage.removeItem("sd_refresh");
+        setOfflinePassphrase(null);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -46,6 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   function persist(data: TokenResponse) {
     localStorage.setItem("sd_token", data.access_token);
     localStorage.setItem("sd_refresh", data.refresh_token);
+    setOfflinePassphrase(data.access_token);
     setUser(data.user);
   }
 
@@ -63,6 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         api.post("/auth/logout").catch(() => undefined);
         localStorage.removeItem("sd_token");
         localStorage.removeItem("sd_refresh");
+        setOfflinePassphrase(null);
         setUser(null);
       },
     }),

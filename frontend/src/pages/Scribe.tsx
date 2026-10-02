@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { api, type Consultation, type Patient, type StructuredNote } from "../lib/api";
-import type { LanguageDetection, DraftValidation } from "../lib/api";
+import type { LanguageDetection, DraftValidation, Meta } from "../lib/api";
+import { blobToBase64, useRecorder } from "../lib/recorder";
 import {
   EmptyState,
   ErrorState,
@@ -30,6 +31,15 @@ interface TranscribeResponse {
   is_demo: boolean;
   demo_banner: string | null;
   uncertain_spans: string[];
+  confidence: number | null;
+  duration_seconds: number | null;
+  segments: Array<{
+    start: number;
+    end: number;
+    text: string;
+    language: string | null;
+    confidence: number | null;
+  }>;
   audio_retained: boolean;
   detection: LanguageDetection | null;
 }
@@ -131,8 +141,9 @@ export function Scribe() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [decision, setDecision] = useState("");
-  const [elapsed, setElapsed] = useState(0);
-  const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [meta, setMeta] = useState<Meta | null>(null);
+  const [captured, setCaptured] = useState<Blob | null>(null);
+  const recorder = useRecorder();
   const toast = useToast();
 
   useEffect(() => {
@@ -140,20 +151,10 @@ export function Scribe() {
       .get<Patient[]>("/patients")
       .then(setPatients)
       .catch((e) => setError(e instanceof Error ? e.message : "Erreur"));
+    api.get<Meta>("/meta").then(setMeta).catch(() => undefined);
   }, []);
 
-  useEffect(() => {
-    if (step === "recording") {
-      setElapsed(0);
-      timer.current = setInterval(() => setElapsed((s) => s + 1), 1000);
-    } else if (timer.current) {
-      clearInterval(timer.current);
-      timer.current = null;
-    }
-    return () => {
-      if (timer.current) clearInterval(timer.current);
-    };
-  }, [step]);
+  const sttLive = meta?.providers?.stt?.connected ?? false;
 
   async function startConsultation() {
     setError(null);
@@ -169,16 +170,22 @@ export function Scribe() {
     }
   }
 
-  async function transcribe() {
+  /** Send audio (real STT) or a typed hint (demo) to the backend. */
+  async function transcribe(audio?: Blob | null) {
     if (!consultation) return;
     setError(null);
     setBusy(true);
     try {
+      let audioBase64: string | undefined;
+      if (audio && sttLive) {
+        audioBase64 = await blobToBase64(audio);
+      }
       const res = await api.post<TranscribeResponse>("/scribe/transcribe", {
         consultation_id: consultation.id,
         language_hint: "wolof",
-        text_hint: textHint,
+        text_hint: audio && sttLive ? undefined : textHint,
         consent_audio: consentAudio,
+        audio_base64: audioBase64,
       });
       setTranscript(res);
       setStep("transcribed");
@@ -187,6 +194,12 @@ export function Scribe() {
     } finally {
       setBusy(false);
     }
+  }
+
+  async function handleStopAndTranscribe() {
+    const blob = await recorder.stop();
+    setCaptured(blob);
+    await transcribe(blob);
   }
 
   async function structure() {
@@ -224,7 +237,9 @@ export function Scribe() {
     }
   }
 
-  const mmss = `${String(Math.floor(elapsed / 60)).padStart(2, "0")}:${String(elapsed % 60).padStart(2, "0")}`;
+  const mmss = `${String(Math.floor(recorder.seconds / 60)).padStart(2, "0")}:${String(
+    recorder.seconds % 60,
+  ).padStart(2, "0")}`;
 
   return (
     <div>
@@ -284,30 +299,82 @@ export function Scribe() {
       {step === "recording" && (
         <div className="card">
           <div className="flex flex-col items-center gap-4 py-4">
-            <span className="relative flex h-24 w-24 items-center justify-center rounded-full bg-primary text-white">
+            <span
+              className={`relative flex h-24 w-24 items-center justify-center rounded-full text-white ${
+                recorder.state === "recording" ? "bg-primary" : "bg-slate-300"
+              }`}
+            >
               <IconMic className="h-10 w-10" aria-hidden="true" />
-              <span className="absolute inset-0 animate-pulse-ring rounded-full bg-primary/40" />
+              {recorder.state === "recording" && (
+                <span className="absolute inset-0 animate-pulse-ring rounded-full bg-primary/40" />
+              )}
             </span>
             <div className="text-center">
-              <p className="font-semibold text-ink">Enregistrement en cours</p>
+              <p className="font-semibold text-ink">
+                {recorder.state === "recording"
+                  ? "Enregistrement en cours"
+                  : recorder.state === "paused"
+                    ? "Enregistrement en pause"
+                    : recorder.state === "stopped"
+                      ? "Enregistrement terminé"
+                      : "Prêt à enregistrer"}
+              </p>
               <p className="mt-0.5 font-mono text-2xl font-bold text-primary">{mmss}</p>
             </div>
-            <Waveform />
-            <span className="badge-warn">
+            {recorder.state === "recording" && <Waveform />}
+
+            <span className={sttLive ? "badge-ok" : "badge-warn"}>
               <IconWarning className="h-3 w-3" aria-hidden="true" />
-              Mode démonstration
+              {sttLive
+                ? "Reconnaissance vocale connectée"
+                : "Reconnaissance vocale — configuration requise"}
             </span>
-            <p className="max-w-md text-center text-sm text-muted">
-              Aucun moteur de reconnaissance vocale réel n'est configuré. Saisissez la
-              transcription ci-dessous pour exercer la chaîne complète. L'audio n'est jamais
-              simulé.
-            </p>
+            {!sttLive && (
+              <p className="max-w-md text-center text-sm text-muted">
+                Aucun moteur de reconnaissance vocale réel n'est configuré. Vous pouvez enregistrer
+                votre voix, mais la transcription automatique nécessite un moteur STT configuré
+                côté serveur. Sinon, saisissez la transcription ci-dessous pour exercer la chaîne
+                complète. L'audio n'est jamais simulé.
+              </p>
+            )}
+            {recorder.error && (
+              <p className="max-w-md text-center text-sm text-red-600" role="alert">
+                {recorder.error}
+              </p>
+            )}
+
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              {recorder.state === "idle" || recorder.state === "stopped" ? (
+                <button className="btn-primary" onClick={() => recorder.start()} disabled={busy}>
+                  <IconMic className="h-4 w-4" aria-hidden="true" />
+                  Démarrer l'enregistrement
+                </button>
+              ) : (
+                <>
+                  {recorder.state === "recording" ? (
+                    <button className="btn-secondary" onClick={recorder.pause}>
+                      Pause
+                    </button>
+                  ) : (
+                    <button className="btn-secondary" onClick={recorder.resume}>
+                      Reprendre
+                    </button>
+                  )}
+                  <button className="btn-primary" disabled={busy} onClick={handleStopAndTranscribe}>
+                    <IconStop className="h-4 w-4" aria-hidden="true" />
+                    Arrêter et transcrire
+                  </button>
+                </>
+              )}
+            </div>
           </div>
 
           <div className="mt-2 border-t border-slate-100 pt-4">
             <div className="mb-2 flex items-center justify-between">
               <label className="label mb-0" htmlFor="hint">
-                Transcription (mode démonstration)
+                {sttLive
+                  ? "Transcription manuelle de secours (facultative)"
+                  : "Transcription (mode démonstration)"}
               </label>
               <span className="badge-info">
                 <IconLanguage className="h-3 w-3" aria-hidden="true" />
@@ -341,14 +408,14 @@ export function Scribe() {
             <button
               className="btn-primary mt-4"
               disabled={busy || textHint.trim().length === 0}
-              onClick={transcribe}
+              onClick={() => transcribe(null)}
             >
               {busy ? (
                 "Transcription…"
               ) : (
                 <>
                   <IconStop className="h-4 w-4" aria-hidden="true" />
-                  Arrêter et transcrire
+                  Transcrire le texte saisi
                 </>
               )}
             </button>
@@ -380,8 +447,33 @@ export function Scribe() {
           <p className="mt-2 whitespace-pre-wrap rounded-xl bg-surface p-3 text-sm text-ink">
             {transcript.raw_text || "Non documenté"}
           </p>
+          {transcript.segments.length > 0 && (
+            <div className="mt-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+                Segments (horodatés)
+              </p>
+              <ul className="mt-1 space-y-1">
+                {transcript.segments.map((seg, i) => (
+                  <li key={i} className="flex items-start gap-2 text-xs text-muted">
+                    <span className="badge-muted shrink-0 font-mono">
+                      {seg.start.toFixed(1)}–{seg.end.toFixed(1)}s
+                    </span>
+                    <span>{seg.text}</span>
+                    {seg.confidence != null && (
+                      <span className="shrink-0 text-[10px]">
+                        ({Math.round(seg.confidence * 100)}%)
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <p className="mt-2 text-xs text-muted">
             Audio conservé : {transcript.audio_retained ? "oui (consentement donné)" : "non"}
+            {transcript.duration_seconds != null &&
+              ` · Durée : ${transcript.duration_seconds.toFixed(1)} s`}
+            {captured && ` · Audio capturé : ${(captured.size / 1024).toFixed(0)} Ko`}
           </p>
           {step === "transcribed" && (
             <button className="btn-primary mt-4" disabled={busy} onClick={structure}>
